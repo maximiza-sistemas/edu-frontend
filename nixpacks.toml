@@ -1,0 +1,33 @@
+[phases.setup]
+nixPkgs = ["nodejs_18", "caddy"]
+
+[phases.install]
+cmds = ["npm ci"]
+
+[phases.build]
+cmds = ["npm run build"]
+
+[staticAssets]
+directory = "dist"
+
+# Custom Caddy configuration with correct MIME types
+[start]
+cmd = '''
+echo ':80 {
+    root * /app/dist
+    encode gzip
+    
+    @js {
+        path *.js
+    }
+    header @js Content-Type application/javascript
+    
+    @css {
+        path *.css
+    }
+    header @css Content-Type text/css
+    
+    file_server
+    try_files {path} /index.html
+}' > /tmp/Caddyfile && caddy run --config /tmp/Caddyfile --adapter caddyfile
+'''
