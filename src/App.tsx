@@ -9,7 +9,6 @@ import Login from './pages/Login';
 import BookReader from './pages/BookReader';
 
 // Admin Pages
-import AdminDashboard from './pages/Admin/Dashboard';
 import ManageBooks from './pages/Admin/ManageBooks';
 import ManageUsers from './pages/Admin/ManageUsers';
 import ManageCurriculum from './pages/Admin/ManageCurriculum';
@@ -46,7 +45,6 @@ function App() {
                 <Route path="/admin/users" element={<ManageUsers />} />
                 <Route path="/admin/curriculum" element={<ManageCurriculum />} />
                 <Route path="/admin/series" element={<ManageSeries />} />
-                <Route path="/admin/settings" element={<AdminDashboard />} />
               </Route>
             </Route>
 

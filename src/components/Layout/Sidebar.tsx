@@ -5,7 +5,6 @@ import {
     Users,
     Library,
     GraduationCap,
-    Settings,
     BookMarked,
     UserCircle,
     Layers
@@ -23,7 +22,6 @@ const adminNav: NavItem[] = [
     { path: '/admin/users', label: 'Gerenciar Usuários', icon: <Users size={20} /> },
     { path: '/admin/curriculum', label: 'Componentes Curriculares', icon: <Layers size={20} /> },
     { path: '/admin/series', label: 'Séries', icon: <GraduationCap size={20} /> },
-    { path: '/admin/settings', label: 'Configurações', icon: <Settings size={20} /> },
 ];
 
 const professorNav: NavItem[] = [
