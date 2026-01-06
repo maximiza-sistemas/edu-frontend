@@ -1,5 +1,9 @@
 // API Configuration
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+// Extract root URL (remove /api suffix if present)
+const SERVER_URL = API_BASE_URL.replace(/\/api\/?$/, '');
+
+
 
 // Token management
 function getToken(): string | null {
@@ -366,7 +370,7 @@ export const uploadApi = {
     getPdfUrl(pdfUrl: string): string {
         // If it's a relative URL, prepend the server base
         if (pdfUrl.startsWith('/uploads')) {
-            return `http://localhost:3001${pdfUrl}`;
+            return `${SERVER_URL}${pdfUrl}`;
         }
         return pdfUrl;
     }
