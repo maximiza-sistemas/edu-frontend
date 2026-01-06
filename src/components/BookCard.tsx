@@ -1,6 +1,7 @@
 import { Book } from '../types';
 import { BookOpen, ChevronRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { uploadApi } from '../services/api';
 import './BookCard.css';
 
 interface BookCardProps {
@@ -20,7 +21,7 @@ export default function BookCard({ book, onClick }: BookCardProps) {
     return (
         <div className="book-card" onClick={onClick}>
             <div className="book-cover">
-                <img src={book.cover_url || '/placeholder-book.png'} alt={book.title} />
+                <img src={uploadApi.getFileUrl(book.cover_url) || '/placeholder-book.png'} alt={book.title} />
                 <div className="book-overlay">
                     <button
                         className="read-btn"
@@ -48,4 +49,3 @@ export default function BookCard({ book, onClick }: BookCardProps) {
         </div>
     );
 }
-

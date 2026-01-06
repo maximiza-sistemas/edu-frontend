@@ -373,6 +373,14 @@ export const uploadApi = {
             return `${SERVER_URL}${pdfUrl}`;
         }
         return pdfUrl;
+    },
+
+    getFileUrl(fileUrl: string): string {
+        if (!fileUrl) return '';
+        if (fileUrl.startsWith('/uploads')) {
+            return `${SERVER_URL}${fileUrl}`;
+        }
+        return fileUrl;
     }
 };
 
