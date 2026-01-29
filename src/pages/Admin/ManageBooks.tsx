@@ -1,12 +1,20 @@
 import { useState, useRef, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useBooks } from '../../contexts/BooksContext';
-import { Plus, Edit2, Trash2, X, Upload, FileText, Loader2, Check } from 'lucide-react';
-import { Book, BookFilters as BookFiltersType, CLASS_GROUPS, ClassGroup, BOOK_TYPES, BookType } from '../../types';
+import { Plus, Edit2, Trash2, X, Upload, FileText, Loader2, Check, Eye } from 'lucide-react';
+import { Book, BookFilters as BookFiltersType, BOOK_TYPES, BookType } from '../../types';
 import BookFilters from '../../components/BookFilters';
-import { uploadApi, curriculumApi, CurriculumComponent } from '../../services/api';
+import { uploadApi, curriculumApi, seriesApi, CurriculumComponent, Series } from '../../services/api';
+
+// Helper to get absolute image URL
+const getImageUrl = (url: string) => {
+    if (!url) return 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=400&h=600&fit=crop';
+    return uploadApi.getFileUrl(url);
+};
 import './ManageBooks.css';
 
 export default function ManageBooks() {
+    const navigate = useNavigate();
     const { addBook, updateBook, deleteBook, filterBooks } = useBooks();
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingBook, setEditingBook] = useState<Book | null>(null);
@@ -26,8 +34,12 @@ export default function ManageBooks() {
     // Curriculum components from API
     const [curriculumComponents, setCurriculumComponents] = useState<CurriculumComponent[]>([]);
 
+    // Series from API
+    const [seriesList, setSeriesList] = useState<Series[]>([]);
+
     useEffect(() => {
         loadCurriculumComponents();
+        loadSeries();
     }, []);
 
     const loadCurriculumComponents = async () => {
@@ -40,6 +52,15 @@ export default function ManageBooks() {
             }
         } catch (err) {
             console.error('Error loading curriculum components:', err);
+        }
+    };
+
+    const loadSeries = async () => {
+        try {
+            const data = await seriesApi.getAll();
+            setSeriesList(data);
+        } catch (err) {
+            console.error('Error loading series:', err);
         }
     };
 
@@ -318,57 +339,90 @@ export default function ManageBooks() {
             <BookFilters onFilterChange={setFilters} />
 
             <div className="books-grid">
-                {filteredBooks.map(book => (
-                    <div key={book.id} className="book-card animate-slideUp">
-                        <div className="book-card-cover-container">
-                            {/* Blurred background for diverse aspect ratios */}
-                            <div
-                                className="book-card-cover-blur"
-                                style={{ backgroundImage: `url(${book.cover_url})` }}
-                            />
-                            <img
-                                src={book.cover_url}
-                                alt={book.title}
-                                className="book-card-cover"
-                                style={{ position: 'relative', zIndex: 1 }}
-                            />
-                        </div>
+                {filteredBooks.map(book => {
+                    const coverUrl = getImageUrl(book.cover_url);
+                    const hasValidCover = book.cover_url && !book.cover_url.includes('unsplash');
 
-                        <div className="book-card-content">
-                            <div className="book-card-badges">
-                                <span className={`badge badge-${book.book_type}`}>
-                                    {book.book_type === 'professor' ? 'Professor' : 'Aluno'}
-                                </span>
-                                <span className="badge badge-component">{book.curriculum_component}</span>
-                            </div>
-
-                            <div>
-                                <h3 className="book-name" title={book.title}>{book.title}</h3>
-                                <span className="book-author">{book.author}</span>
-                            </div>
-
-                            <div className="class-tags">
-                                {(book.class_groups || []).slice(0, 3).map((group: string) => (
-                                    <span key={group} className="class-tag">{group}</span>
-                                ))}
-                                {(book.class_groups || []).length > 3 && (
-                                    <span className="class-tag-more">+{(book.class_groups || []).length - 3}</span>
+                    return (
+                        <div key={book.id} className="book-card animate-slideUp">
+                            <div className="book-card-cover-container">
+                                {hasValidCover ? (
+                                    <>
+                                        {/* Blurred background for diverse aspect ratios */}
+                                        <div
+                                            className="book-card-cover-blur"
+                                            style={{ backgroundImage: `url(${coverUrl})` }}
+                                        />
+                                        <img
+                                            src={coverUrl}
+                                            alt={book.title}
+                                            className="book-card-cover"
+                                            style={{ position: 'relative', zIndex: 1 }}
+                                            onError={(e) => {
+                                                // Hide broken image and show placeholder
+                                                const target = e.target as HTMLImageElement;
+                                                target.style.display = 'none';
+                                                const placeholder = target.parentElement?.querySelector('.book-cover-placeholder');
+                                                if (placeholder) (placeholder as HTMLElement).style.display = 'flex';
+                                            }}
+                                        />
+                                        <div className="book-cover-placeholder" style={{ display: 'none' }}>
+                                            <FileText size={48} />
+                                            <span>Sem Capa</span>
+                                        </div>
+                                    </>
+                                ) : (
+                                    <div className="book-cover-placeholder">
+                                        <FileText size={48} />
+                                        <span>Sem Capa</span>
+                                    </div>
                                 )}
                             </div>
 
-                            <div className="book-card-footer">
-                                <div className="book-card-actions">
-                                    <button className="btn btn-icon" onClick={() => openModal(book)} title="Editar">
-                                        <Edit2 size={18} />
-                                    </button>
-                                    <button className="btn btn-icon danger" onClick={() => handleDelete(book.id)} title="Excluir">
-                                        <Trash2 size={18} />
-                                    </button>
+                            <div className="book-card-content">
+                                <div className="book-card-badges">
+                                    <span className={`badge badge-${book.book_type}`}>
+                                        {book.book_type === 'professor' ? 'Professor' : 'Aluno'}
+                                    </span>
+                                    <span className="badge badge-component">{book.curriculum_component}</span>
+                                </div>
+
+                                <div>
+                                    <h3 className="book-name" title={book.title}>{book.title}</h3>
+                                    <span className="book-author">{book.author}</span>
+                                </div>
+
+                                <div className="class-tags">
+                                    {(book.class_groups || []).slice(0, 3).map((group: string) => (
+                                        <span key={group} className="class-tag">{group}</span>
+                                    ))}
+                                    {(book.class_groups || []).length > 3 && (
+                                        <span className="class-tag-more">+{(book.class_groups || []).length - 3}</span>
+                                    )}
+                                </div>
+
+                                <div className="book-card-footer">
+                                    <div className="book-card-actions">
+                                        <button
+                                            className="btn btn-icon"
+                                            onClick={() => book.pdf_url && navigate(`/reader/${book.id}`)}
+                                            title={book.pdf_url ? 'Visualizar' : 'Sem PDF'}
+                                            disabled={!book.pdf_url}
+                                        >
+                                            <Eye size={18} />
+                                        </button>
+                                        <button className="btn btn-icon" onClick={() => openModal(book)} title="Editar">
+                                            <Edit2 size={18} />
+                                        </button>
+                                        <button className="btn btn-icon danger" onClick={() => handleDelete(book.id)} title="Excluir">
+                                            <Trash2 size={18} />
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                    </div>
-                ))}
+                    );
+                })}
             </div>
 
             {filteredBooks.length === 0 && (
@@ -501,7 +555,7 @@ export default function ManageBooks() {
 
                                                 {formData.coverUrl && !coverFile && (
                                                     <div className="mt-2" style={{ width: '100px', height: '140px', background: '#ccc', borderRadius: '4px', overflow: 'hidden' }}>
-                                                        <img src={formData.coverUrl} alt="Preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                                        <img src={getImageUrl(formData.coverUrl)} alt="Preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                                     </div>
                                                 )}
                                             </div>
@@ -511,14 +565,14 @@ export default function ManageBooks() {
                                 <div className="input-group">
                                     <label>Turmas</label>
                                     <div className="class-grid">
-                                        {CLASS_GROUPS.map(group => (
-                                            <label key={group} className={`class-checkbox ${formData.classGroups.includes(group) ? 'checked' : ''}`}>
+                                        {seriesList.map(series => (
+                                            <label key={series.id} className={`class-checkbox ${formData.classGroups.includes(series.name) ? 'checked' : ''}`}>
                                                 <input
                                                     type="checkbox"
-                                                    checked={formData.classGroups.includes(group)}
-                                                    onChange={() => toggleClassGroup(group)}
+                                                    checked={formData.classGroups.includes(series.name)}
+                                                    onChange={() => toggleClassGroup(series.name)}
                                                 />
-                                                <span>{group}</span>
+                                                <span>{series.name}</span>
                                             </label>
                                         ))}
                                     </div>

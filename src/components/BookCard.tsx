@@ -18,8 +18,19 @@ export default function BookCard({ book, onClick }: BookCardProps) {
         }
     };
 
+    const handleCardClick = () => {
+        // Navigate to reader if book has PDF
+        if (book.pdf_url) {
+            navigate(`/reader/${book.id}`);
+        }
+        // Also call onClick prop if provided
+        if (onClick) {
+            onClick();
+        }
+    };
+
     return (
-        <div className="book-card" onClick={onClick}>
+        <div className="book-card" onClick={handleCardClick}>
             <div className="book-cover">
                 <img src={uploadApi.getFileUrl(book.cover_url) || '/placeholder-book.png'} alt={book.title} />
                 <div className="book-overlay">

@@ -13,8 +13,8 @@
 
 .book-card:hover {
     border-color: var(--border-color-hover);
-    transform: translateY(-4px);
-    box-shadow: var(--shadow-md);
+    transform: translateY(-8px) scale(1.02);
+    box-shadow: var(--shadow-lg), 0 20px 40px rgba(22, 45, 80, 0.15);
 }
 
 .book-cover {

@@ -28,16 +28,11 @@ export type CurriculumComponent = typeof CURRICULUM_COMPONENTS[number];
 
 // Turmas
 export const CLASS_GROUPS = [
-    '1º Ano A',
-    '1º Ano B',
-    '2º Ano A',
-    '2º Ano B',
-    '3º Ano A',
-    '3º Ano B',
-    '4º Ano A',
-    '4º Ano B',
-    '5º Ano A',
-    '5º Ano B'
+    '1º ANO',
+    '2º ANO',
+    '3º ANO',
+    '4º ANO',
+    '5º ANO'
 ] as const;
 
 export type ClassGroup = typeof CLASS_GROUPS[number];

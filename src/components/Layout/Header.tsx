@@ -1,5 +1,6 @@
 import { useAuth } from '../../contexts/AuthContext';
 import { LogOut, Bell, Search } from 'lucide-react';
+import ThemeToggle from '../ThemeToggle';
 import './Header.css';
 
 interface HeaderProps {
@@ -27,6 +28,8 @@ export default function Header({ title }: HeaderProps) {
             </div>
 
             <div className="header-right">
+                <ThemeToggle />
+
                 <button className="header-btn notification-btn">
                     <Bell size={20} />
                     <span className="notification-badge">3</span>
@@ -42,3 +45,4 @@ export default function Header({ title }: HeaderProps) {
         </header>
     );
 }
+
