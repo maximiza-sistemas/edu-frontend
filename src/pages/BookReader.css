@@ -95,14 +95,24 @@
 .reader-content {
     flex: 1;
     position: relative;
-    overflow: auto;
+    overflow: hidden;
     background: #1a1a2e;
 }
 
-.pdf-container {
+.pdf-wrapper {
     width: 100%;
     height: 100%;
-    transition: transform 0.2s ease-out;
+    overflow: auto;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    padding: var(--spacing-md);
+}
+
+.pdf-container {
+    min-width: 300px;
+    min-height: 400px;
+    transition: width 0.2s ease-out, height 0.2s ease-out;
 }
 
 .pdf-viewer {

@@ -176,27 +176,29 @@ export default function BookReader() {
             </div>
 
             <div className="reader-content">
-                <div
-                    className="pdf-container"
-                    style={{
-                        transform: `scale(${currentZoom / 100})`,
-                        transformOrigin: 'top center'
-                    }}
-                >
-                    {/* Use object tag with PDF viewer settings to disable download */}
-                    <object
-                        data={embedUrl}
-                        type="application/pdf"
-                        className="pdf-viewer"
-                        onContextMenu={(e) => e.preventDefault()}
+                <div className="pdf-wrapper">
+                    <div
+                        className="pdf-container"
+                        style={{
+                            width: `${currentZoom}%`,
+                            height: `${currentZoom}%`,
+                        }}
                     >
-                        {/* Fallback for browsers that don't support object */}
-                        <embed
-                            src={embedUrl}
+                        {/* Use object tag with PDF viewer settings to disable download */}
+                        <object
+                            data={embedUrl}
                             type="application/pdf"
                             className="pdf-viewer"
-                        />
-                    </object>
+                            onContextMenu={(e) => e.preventDefault()}
+                        >
+                            {/* Fallback for browsers that don't support object */}
+                            <embed
+                                src={embedUrl}
+                                type="application/pdf"
+                                className="pdf-viewer"
+                            />
+                        </object>
+                    </div>
                 </div>
 
                 {/* Overlay to prevent drag and some interactions */}
