@@ -18,12 +18,14 @@
     display: flex;
     align-items: center;
     justify-content: center;
+    background: rgba(255, 255, 255, 0.12);
+    border-radius: var(--radius-2xl);
+    padding: var(--spacing-xl) var(--spacing-2xl, 2rem);
 }
 
 .logo-image {
     max-width: 180px;
     height: auto;
-    filter: brightness(0) invert(1);
 }
 
 .sidebar-nav {
