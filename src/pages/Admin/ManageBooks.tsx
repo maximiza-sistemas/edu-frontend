@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useBooks } from '../../contexts/BooksContext';
 import { Plus, Edit2, Trash2, X, Upload, FileText, Loader2, Check, Eye, BookOpen } from 'lucide-react';
 import PageBanner from '../../components/PageBanner';
-import { Book, BookFilters as BookFiltersType, BOOK_TYPES, BookType } from '../../types';
+import { Book, BookFilters as BookFiltersType, BOOK_TYPES, BookType, ClassGroup } from '../../types';
 import BookFilters from '../../components/BookFilters';
 import { uploadApi, curriculumApi, seriesApi, CurriculumComponent, Series } from '../../services/api';
 
@@ -29,7 +29,7 @@ export default function ManageBooks() {
         pdfUrl: '',
         curriculumComponent: '',
         bookType: 'student' as BookType,
-        classGroups: [] as ClassGroup[]
+        classGroups: [] as string[]
     });
 
     // Curriculum components from API
@@ -274,24 +274,6 @@ export default function ManageBooks() {
         }
     };
 
-    // Generate cover from a PDF URL (for existing books)
-    const generateCoverFromPdfUrl = async (pdfUrl: string): Promise<string | null> => {
-        try {
-            const { pdfjs } = await import('react-pdf');
-            if (!pdfjs.GlobalWorkerOptions.workerSrc) {
-                pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
-            }
-
-            const absoluteUrl = uploadApi.getPdfUrl(pdfUrl);
-            const response = await fetch(absoluteUrl);
-            if (!response.ok) return null;
-            const arrayBuffer = await response.arrayBuffer();
-            return await renderPdfPageToCover(arrayBuffer);
-        } catch (err) {
-            console.error('Failed to generate cover from PDF URL:', err);
-            return null;
-        }
-    };
 
     // Shared: render first page of PDF to cover image and upload
     const renderPdfPageToCover = async (arrayBuffer: ArrayBuffer): Promise<string | null> => {
@@ -317,35 +299,13 @@ export default function ManageBooks() {
         return result.imageUrl || null;
     };
 
-    // Auto-generate covers for existing books that have PDF but no cover
-    const generatingRef = useRef<Set<string>>(new Set());
-    useEffect(() => {
-        const booksNeedingCover = filteredBooks.filter(
-            book => book.pdf_url && (!book.cover_url || book.cover_url.includes('unsplash')) && !generatingRef.current.has(book.id)
-        );
-
-        if (booksNeedingCover.length === 0) return;
-
-        booksNeedingCover.forEach(async (book) => {
-            generatingRef.current.add(book.id);
-            try {
-                const coverUrl = await generateCoverFromPdfUrl(book.pdf_url!);
-                if (coverUrl) {
-                    await updateBook(book.id, { cover_url: coverUrl });
-                }
-            } catch (err) {
-                console.error(`Failed to auto-generate cover for book ${book.id}:`, err);
-            }
-        });
-    }, [filteredBooks]);
-
     const handleDelete = (bookId: string) => {
         if (confirm('Tem certeza que deseja excluir este livro?')) {
             deleteBook(bookId);
         }
     };
 
-    const toggleClassGroup = (group: ClassGroup) => {
+    const toggleClassGroup = (group: string) => {
         if (formData.classGroups.includes(group)) {
             setFormData({
                 ...formData,
