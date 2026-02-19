@@ -261,57 +261,83 @@ export default function ManageBooks() {
 
     const generateCoverFromPdf = async (file: File): Promise<string | null> => {
         try {
-            // Use react-pdf's bundled pdfjs (same instance as BookReader)
-            // which already has the CDN worker configured
             const { pdfjs } = await import('react-pdf');
-
-            // Ensure worker is configured (same CDN pattern as BookReader)
             if (!pdfjs.GlobalWorkerOptions.workerSrc) {
                 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
             }
 
             const arrayBuffer = await file.arrayBuffer();
-            const pdf = await pdfjs.getDocument({ data: arrayBuffer }).promise;
-
-            // Get first page
-            const page = await pdf.getPage(1);
-
-            // Configure viewport (scale 1.5 for better quality)
-            const viewport = page.getViewport({ scale: 1.5 });
-            const canvas = document.createElement('canvas');
-            const context = canvas.getContext('2d');
-
-            if (!context) return null;
-
-            canvas.height = viewport.height;
-            canvas.width = viewport.width;
-
-            // Render page to canvas
-            const renderContext = {
-                canvasContext: context,
-                viewport: viewport
-            };
-            await page.render(renderContext as any).promise;
-
-            // Convert to blob
-            const blob = await new Promise<Blob | null>(resolve =>
-                canvas.toBlob(resolve, 'image/jpeg', 0.8)
-            );
-
-            if (!blob) return null;
-
-            // Convert blob to File so multer receives a proper filename and MIME type
-            const coverFile = new File([blob], `cover-${Date.now()}.jpg`, { type: 'image/jpeg' });
-
-            // Upload the generated image
-            const result = await uploadApi.uploadImage(coverFile);
-            return result.imageUrl || null;
-
+            return await renderPdfPageToCover(arrayBuffer);
         } catch (err) {
             console.error('Failed to generate PDF cover:', err);
             return null;
         }
     };
+
+    // Generate cover from a PDF URL (for existing books)
+    const generateCoverFromPdfUrl = async (pdfUrl: string): Promise<string | null> => {
+        try {
+            const { pdfjs } = await import('react-pdf');
+            if (!pdfjs.GlobalWorkerOptions.workerSrc) {
+                pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
+            }
+
+            const absoluteUrl = uploadApi.getPdfUrl(pdfUrl);
+            const response = await fetch(absoluteUrl);
+            if (!response.ok) return null;
+            const arrayBuffer = await response.arrayBuffer();
+            return await renderPdfPageToCover(arrayBuffer);
+        } catch (err) {
+            console.error('Failed to generate cover from PDF URL:', err);
+            return null;
+        }
+    };
+
+    // Shared: render first page of PDF to cover image and upload
+    const renderPdfPageToCover = async (arrayBuffer: ArrayBuffer): Promise<string | null> => {
+        const { pdfjs } = await import('react-pdf');
+        const pdf = await pdfjs.getDocument({ data: arrayBuffer }).promise;
+        const page = await pdf.getPage(1);
+        const viewport = page.getViewport({ scale: 1.5 });
+        const canvas = document.createElement('canvas');
+        const context = canvas.getContext('2d');
+        if (!context) return null;
+
+        canvas.height = viewport.height;
+        canvas.width = viewport.width;
+        await page.render({ canvasContext: context, viewport } as any).promise;
+
+        const blob = await new Promise<Blob | null>(resolve =>
+            canvas.toBlob(resolve, 'image/jpeg', 0.8)
+        );
+        if (!blob) return null;
+
+        const coverFile = new File([blob], `cover-${Date.now()}.jpg`, { type: 'image/jpeg' });
+        const result = await uploadApi.uploadImage(coverFile);
+        return result.imageUrl || null;
+    };
+
+    // Auto-generate covers for existing books that have PDF but no cover
+    const generatingRef = useRef<Set<string>>(new Set());
+    useEffect(() => {
+        const booksNeedingCover = filteredBooks.filter(
+            book => book.pdf_url && (!book.cover_url || book.cover_url.includes('unsplash')) && !generatingRef.current.has(book.id)
+        );
+
+        if (booksNeedingCover.length === 0) return;
+
+        booksNeedingCover.forEach(async (book) => {
+            generatingRef.current.add(book.id);
+            try {
+                const coverUrl = await generateCoverFromPdfUrl(book.pdf_url!);
+                if (coverUrl) {
+                    await updateBook(book.id, { cover_url: coverUrl });
+                }
+            } catch (err) {
+                console.error(`Failed to auto-generate cover for book ${book.id}:`, err);
+            }
+        });
+    }, [filteredBooks]);
 
     const handleDelete = (bookId: string) => {
         if (confirm('Tem certeza que deseja excluir este livro?')) {
