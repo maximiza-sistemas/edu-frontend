@@ -142,7 +142,7 @@ export default function ManageBooks() {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
-        const cover_url = formData.coverUrl || `https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=400&h=600&fit=crop`;
+        const cover_url = formData.coverUrl || '';
 
         const bookData = {
             title: formData.title,
@@ -297,8 +297,11 @@ export default function ManageBooks() {
 
             if (!blob) return null;
 
+            // Convert blob to File so multer receives a proper filename and MIME type
+            const coverFile = new File([blob], `cover-${Date.now()}.jpg`, { type: 'image/jpeg' });
+
             // Upload the generated image
-            const result = await uploadApi.uploadImage(blob);
+            const result = await uploadApi.uploadImage(coverFile);
             return result.imageUrl || null;
 
         } catch (err) {
