@@ -261,14 +261,17 @@ export default function ManageBooks() {
 
     const generateCoverFromPdf = async (file: File): Promise<string | null> => {
         try {
-            // Load PDF.js
-            const pdfjsLib = await import('pdfjs-dist');
+            // Use react-pdf's bundled pdfjs (same instance as BookReader)
+            // which already has the CDN worker configured
+            const { pdfjs } = await import('react-pdf');
 
-            // Use local worker file from public directory to avoid CORS and version issues
-            pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.mjs';
+            // Ensure worker is configured (same CDN pattern as BookReader)
+            if (!pdfjs.GlobalWorkerOptions.workerSrc) {
+                pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
+            }
 
             const arrayBuffer = await file.arrayBuffer();
-            const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+            const pdf = await pdfjs.getDocument({ data: arrayBuffer }).promise;
 
             // Get first page
             const page = await pdf.getPage(1);
