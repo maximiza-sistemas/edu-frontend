@@ -1,32 +1,37 @@
-import { useState } from 'react';
-import { useAuth } from '../contexts/AuthContext';
-import { BookFilters as BookFiltersType, CURRICULUM_COMPONENTS, CLASS_GROUPS } from '../types';
+import { useState, useEffect } from 'react';
+import { BookFilters as BookFiltersType } from '../types';
+import { seriesApi, Series } from '../services/api';
 import { Search, Filter, X } from 'lucide-react';
 import './BookFilters.css';
 
 interface BookFiltersProps {
     onFilterChange: (filters: BookFiltersType) => void;
-    showProfessorFilter?: boolean;
-    showStudentFilter?: boolean;
 }
 
 export default function BookFilters({
-    onFilterChange,
-    showProfessorFilter = true,
-    showStudentFilter = true
+    onFilterChange
 }: BookFiltersProps) {
-    const { getUsersByRole } = useAuth();
     const [filters, setFilters] = useState<BookFiltersType>({
         search: '',
         curriculumComponent: 'all',
-        classGroup: 'all',
-        professorId: 'all',
-        studentId: 'all'
+        seriesId: 'all',
+        bookType: 'all'
     });
     const [isExpanded, setIsExpanded] = useState(false);
+    const [seriesList, setSeriesList] = useState<Series[]>([]);
 
-    const professors = getUsersByRole('professor');
-    const students = getUsersByRole('student');
+    // Load series from API
+    useEffect(() => {
+        const loadSeries = async () => {
+            try {
+                const data = await seriesApi.getAll();
+                setSeriesList(data);
+            } catch (err) {
+                console.error('Error loading series:', err);
+            }
+        };
+        loadSeries();
+    }, []);
 
     const handleChange = (key: keyof BookFiltersType, value: string) => {
         const newFilters = { ...filters, [key]: value };
@@ -38,9 +43,8 @@ export default function BookFilters({
         const clearedFilters: BookFiltersType = {
             search: '',
             curriculumComponent: 'all',
-            classGroup: 'all',
-            professorId: 'all',
-            studentId: 'all'
+            seriesId: 'all',
+            bookType: 'all'
         };
         setFilters(clearedFilters);
         onFilterChange(clearedFilters);
@@ -49,9 +53,8 @@ export default function BookFilters({
     const hasActiveFilters =
         filters.search ||
         (filters.curriculumComponent && filters.curriculumComponent !== 'all') ||
-        (filters.classGroup && filters.classGroup !== 'all') ||
-        (filters.professorId && filters.professorId !== 'all') ||
-        (filters.studentId && filters.studentId !== 'all');
+        (filters.seriesId && filters.seriesId !== 'all') ||
+        (filters.bookType && filters.bookType !== 'all');
 
     return (
         <div className="book-filters">
@@ -94,57 +97,39 @@ export default function BookFilters({
                             className="select"
                         >
                             <option value="all">Todos os componentes</option>
-                            {CURRICULUM_COMPONENTS.map(comp => (
+                            {/* Curriculum components are shown from the types */}
+                            {['Matemática', 'Língua Portuguesa', 'Ciências', 'História', 'Geografia', 'Inglês', 'Artes', 'Educação Física', 'Filosofia', 'Sociologia'].map(comp => (
                                 <option key={comp} value={comp}>{comp}</option>
                             ))}
                         </select>
                     </div>
 
                     <div className="filter-group">
-                        <label>Turma</label>
+                        <label>Série</label>
                         <select
-                            value={filters.classGroup}
-                            onChange={(e) => handleChange('classGroup', e.target.value)}
+                            value={filters.seriesId}
+                            onChange={(e) => handleChange('seriesId', e.target.value)}
                             className="select"
                         >
-                            <option value="all">Todas as turmas</option>
-                            {CLASS_GROUPS.map(group => (
-                                <option key={group} value={group}>{group}</option>
+                            <option value="all">Todas as séries</option>
+                            {seriesList.map(series => (
+                                <option key={series.id} value={series.name}>{series.name}</option>
                             ))}
                         </select>
                     </div>
 
-                    {showProfessorFilter && (
-                        <div className="filter-group">
-                            <label>Professor</label>
-                            <select
-                                value={filters.professorId}
-                                onChange={(e) => handleChange('professorId', e.target.value)}
-                                className="select"
-                            >
-                                <option value="all">Todos os professores</option>
-                                {professors.map(prof => (
-                                    <option key={prof.id} value={prof.id}>{prof.name}</option>
-                                ))}
-                            </select>
-                        </div>
-                    )}
-
-                    {showStudentFilter && (
-                        <div className="filter-group">
-                            <label>Aluno</label>
-                            <select
-                                value={filters.studentId}
-                                onChange={(e) => handleChange('studentId', e.target.value)}
-                                className="select"
-                            >
-                                <option value="all">Todos os alunos</option>
-                                {students.map(student => (
-                                    <option key={student.id} value={student.id}>{student.name}</option>
-                                ))}
-                            </select>
-                        </div>
-                    )}
+                    <div className="filter-group">
+                        <label>Perfil</label>
+                        <select
+                            value={filters.bookType}
+                            onChange={(e) => handleChange('bookType', e.target.value)}
+                            className="select"
+                        >
+                            <option value="all">Todos os perfis</option>
+                            <option value="professor">Professor</option>
+                            <option value="student">Aluno</option>
+                        </select>
+                    </div>
                 </div>
             )}
         </div>

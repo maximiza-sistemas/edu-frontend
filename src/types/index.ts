@@ -26,7 +26,7 @@ export const CURRICULUM_COMPONENTS = [
 
 export type CurriculumComponent = typeof CURRICULUM_COMPONENTS[number];
 
-// Turmas
+// Turmas (kept for backwards compatibility)
 export const CLASS_GROUPS = [
     '1º ANO',
     '2º ANO',
@@ -42,6 +42,6 @@ export interface BookFilters {
     search?: string;
     curriculumComponent?: CurriculumComponent | 'all';
     classGroup?: ClassGroup | 'all';
-    professorId?: string | 'all';
-    studentId?: string | 'all';
+    seriesId?: string | 'all';
+    bookType?: BookType | 'all';
 }

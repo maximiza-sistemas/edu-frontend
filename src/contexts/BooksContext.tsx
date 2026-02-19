@@ -36,6 +36,8 @@ export interface BookFilters {
     search?: string;
     curriculumComponent?: CurriculumComponent | 'all';
     classGroup?: ClassGroup | 'all';
+    seriesId?: string | 'all';
+    bookType?: 'student' | 'professor' | 'all';
 }
 
 interface BooksContextType {
@@ -156,6 +158,17 @@ export function BooksProvider({ children }: { children: ReactNode }) {
             // Class group filter
             if (filters.classGroup && filters.classGroup !== 'all') {
                 if (!book.class_groups.includes(filters.classGroup)) return false;
+            }
+
+            // Series filter - match by series name in class_groups
+            if (filters.seriesId && filters.seriesId !== 'all') {
+                // seriesId is actually the series name from the select
+                if (!book.class_groups.includes(filters.seriesId)) return false;
+            }
+
+            // Book type (profile) filter
+            if (filters.bookType && filters.bookType !== 'all') {
+                if (book.book_type !== filters.bookType) return false;
             }
 
             return true;
