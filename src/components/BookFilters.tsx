@@ -98,7 +98,7 @@ export default function BookFilters({
                         >
                             <option value="all">Todos os componentes</option>
                             {/* Curriculum components are shown from the types */}
-                            {['Matemática', 'Língua Portuguesa', 'Ciências', 'História', 'Geografia', 'Inglês', 'Artes', 'Educação Física', 'Filosofia', 'Sociologia'].map(comp => (
+                            {['Matemática', 'Língua Portuguesa', 'Ciências', 'História', 'Geografia', 'Inglês', 'Artes', 'Educação Física', 'Filosofia', 'Sociologia', 'Pensamento Computacional'].map(comp => (
                                 <option key={comp} value={comp}>{comp}</option>
                             ))}
                         </select>
