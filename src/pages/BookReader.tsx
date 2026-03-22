@@ -10,8 +10,12 @@ import './BookReader.css';
 // Configure PDF.js worker - use CDN to ensure version match
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
 
-const ZOOM_LEVELS = [0.5, 0.75, 1, 1.25, 1.5];
+const ZOOM_LEVELS = [0.5, 0.75, 1, 1.25, 1.5, 2, 2.5, 3];
 const DEFAULT_ZOOM_INDEX = 2;
+
+// High-DPI rendering: force minimum 3x resolution for crisp quality
+// on digital whiteboards, projectors and large screens
+const PDF_DEVICE_PIXEL_RATIO = Math.max(window.devicePixelRatio || 1, 3);
 
 export default function BookReader() {
     const { bookId } = useParams<{ bookId: string }>();
@@ -309,6 +313,7 @@ export default function BookReader() {
                                         key={`preload-${pageNum}`}
                                         pageNumber={pageNum}
                                         height={availableHeight > 0 ? Math.floor(availableHeight * currentZoom) : undefined}
+                                        devicePixelRatio={PDF_DEVICE_PIXEL_RATIO}
                                         renderTextLayer={false}
                                         renderAnnotationLayer={false}
                                         onLoadSuccess={() => onPageLoadSuccess(pageNum)}
@@ -324,6 +329,7 @@ export default function BookReader() {
                                         <Page
                                             pageNumber={1}
                                             height={availableHeight > 0 ? Math.floor(availableHeight * currentZoom) : undefined}
+                                            devicePixelRatio={PDF_DEVICE_PIXEL_RATIO}
                                             renderTextLayer={false}
                                             renderAnnotationLayer={false}
                                             loading=""
@@ -341,6 +347,7 @@ export default function BookReader() {
                                                 <Page
                                                     pageNumber={leftPage}
                                                     height={availableHeight > 0 ? Math.floor(availableHeight * currentZoom) : undefined}
+                                                    devicePixelRatio={PDF_DEVICE_PIXEL_RATIO}
                                                     renderTextLayer={false}
                                                     renderAnnotationLayer={false}
                                                     loading=""
@@ -360,6 +367,7 @@ export default function BookReader() {
                                                 <Page
                                                     pageNumber={rightPage}
                                                     height={availableHeight > 0 ? Math.floor(availableHeight * currentZoom) : undefined}
+                                                    devicePixelRatio={PDF_DEVICE_PIXEL_RATIO}
                                                     renderTextLayer={false}
                                                     renderAnnotationLayer={false}
                                                     loading=""

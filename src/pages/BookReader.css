@@ -233,6 +233,17 @@
     display: block !important;
 }
 
+/* High-DPI rendering: canvas is rendered at deviceScale multiplied resolution,
+   then scaled back down via CSS for crisp display on large screens/projectors */
+.hd-page .react-pdf__Page {
+    transform-origin: top left;
+}
+
+.hd-page .react-pdf__Page canvas {
+    image-rendering: high-quality;
+    image-rendering: -webkit-optimize-contrast;
+}
+
 /* Page Number - Hidden by default */
 .page-number {
     display: none;
