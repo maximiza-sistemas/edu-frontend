@@ -115,6 +115,12 @@ export default function ManageUsers() {
                 >
                     Alunos ({getUsersByRole('student').length})
                 </button>
+                <button
+                    className={`filter-tab ${filter === 'niveis' ? 'active' : ''}`}
+                    onClick={() => setFilter('niveis')}
+                >
+                    Níveis ({getUsersByRole('niveis').length})
+                </button>
             </div>
 
             <div className="users-table-container">
@@ -211,6 +217,7 @@ export default function ManageUsers() {
                                         <option value="admin">Administrador</option>
                                         <option value="professor">Professor</option>
                                         <option value="student">Aluno</option>
+                                        <option value="niveis">Níveis</option>
                                     </select>
                                 </div>
                                 {formData.role === 'student' && (
