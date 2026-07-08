@@ -44,6 +44,7 @@ export interface BookFilters {
 interface BooksContextType {
     books: Book[];
     studentBooks: Book[];
+    levelBooks: Book[];
     isLoading: boolean;
     error: string | null;
     addBook: (book: Omit<Book, 'id' | 'created_at' | 'updated_at'>) => Promise<void>;
@@ -62,6 +63,7 @@ export function BooksProvider({ children }: { children: ReactNode }) {
     const { user } = useAuth();
     const [books, setBooks] = useState<Book[]>([]);
     const [studentBooks, setStudentBooks] = useState<Book[]>([]);
+    const [levelBooks, setLevelBooks] = useState<Book[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
@@ -85,6 +87,16 @@ export function BooksProvider({ children }: { children: ReactNode }) {
         }
     }, [user?.id, user?.role]);
 
+    const loadLevelBooks = useCallback(async () => {
+        if (user?.role !== 'niveis') return;
+        try {
+            const data = await booksApi.getLevelBooks();
+            setLevelBooks(data);
+        } catch (err) {
+            console.error('Failed to load level books:', err);
+        }
+    }, [user?.role]);
+
     // Load books when authenticated
     useEffect(() => {
         const loadData = async () => {
@@ -94,16 +106,20 @@ export function BooksProvider({ children }: { children: ReactNode }) {
                 if (user.role === 'student') {
                     await loadStudentBooks();
                 }
+                if (user.role === 'niveis') {
+                    await loadLevelBooks();
+                }
                 setIsLoading(false);
             } else {
                 // No user, reset state
                 setBooks([]);
                 setStudentBooks([]);
+                setLevelBooks([]);
                 setIsLoading(false);
             }
         };
         loadData();
-    }, [user, refreshBooks, loadStudentBooks]);
+    }, [user, refreshBooks, loadStudentBooks, loadLevelBooks]);
 
     const addBook = async (bookData: Omit<Book, 'id' | 'created_at' | 'updated_at'>) => {
         try {
@@ -188,6 +204,7 @@ export function BooksProvider({ children }: { children: ReactNode }) {
         <BooksContext.Provider value={{
             books,
             studentBooks,
+            levelBooks,
             isLoading,
             error,
             addBook,
