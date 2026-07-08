@@ -1,7 +1,7 @@
 // Re-export types from API service for backwards compatibility
 export type { User, Book, BookAssignment } from '../services/api';
 
-export type UserRole = 'admin' | 'professor' | 'student';
+export type UserRole = 'admin' | 'professor' | 'student' | 'niveis';
 
 // Book Types
 export type BookType = 'student' | 'professor';

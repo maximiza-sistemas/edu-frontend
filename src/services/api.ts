@@ -48,7 +48,7 @@ export interface User {
     id: string;
     name: string;
     email: string;
-    role: 'admin' | 'professor' | 'student';
+    role: 'admin' | 'professor' | 'student' | 'niveis';
     avatar?: string;
     professor_id?: string;
     class_group?: string;
@@ -66,6 +66,7 @@ export interface Book {
     curriculum_component: string;
     book_type: 'student' | 'professor';
     class_groups: string[];
+    level?: string;
     created_at?: string;
     updated_at?: string;
 }
@@ -198,6 +199,7 @@ export const booksApi = {
         class_group?: string;
         professor_id?: string;
         student_id?: string;
+        level?: string;
     }): Promise<PaginatedResponse<Book>> {
         const searchParams = new URLSearchParams();
         if (params?.search) searchParams.set('search', params.search);
@@ -212,6 +214,9 @@ export const booksApi = {
         }
         if (params?.student_id && params.student_id !== 'all') {
             searchParams.set('student_id', params.student_id);
+        }
+        if (params?.level && params.level !== 'all') {
+            searchParams.set('level', params.level);
         }
 
         const response = await fetchWithAuth(`/books?${searchParams}`);
@@ -257,6 +262,12 @@ export const booksApi = {
     async getByStudent(userId: string): Promise<Book[]> {
         const response = await fetchWithAuth(`/books/student/${userId}`);
         if (!response.ok) throw new Error('Erro ao buscar livros do aluno');
+        return response.json();
+    },
+
+    async getLevelBooks(): Promise<Book[]> {
+        const response = await fetchWithAuth('/books/levels');
+        if (!response.ok) throw new Error('Erro ao buscar livros por nível');
         return response.json();
     }
 };
@@ -478,6 +489,53 @@ export const seriesApi = {
         if (!response.ok) {
             const error = await response.json();
             throw new Error(error.error || 'Erro ao excluir série');
+        }
+    }
+};
+
+// ============== Levels API ==============
+export interface Level {
+    id: string;
+    name: string;
+    created_at: string;
+}
+
+export const levelsApi = {
+    async getAll(): Promise<Level[]> {
+        const response = await fetchWithAuth('/levels');
+        if (!response.ok) throw new Error('Erro ao buscar níveis');
+        return response.json();
+    },
+
+    async create(name: string): Promise<Level> {
+        const response = await fetchWithAuth('/levels', {
+            method: 'POST',
+            body: JSON.stringify({ name })
+        });
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Erro ao criar nível');
+        }
+        return response.json();
+    },
+
+    async update(id: string, name: string): Promise<Level> {
+        const response = await fetchWithAuth(`/levels/${id}`, {
+            method: 'PUT',
+            body: JSON.stringify({ name })
+        });
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Erro ao atualizar nível');
+        }
+        return response.json();
+    },
+
+    async delete(id: string): Promise<void> {
+        const response = await fetchWithAuth(`/levels/${id}`, { method: 'DELETE' });
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Erro ao excluir nível');
         }
     }
 };
