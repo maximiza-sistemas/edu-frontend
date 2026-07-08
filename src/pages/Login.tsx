@@ -26,7 +26,8 @@ export default function Login() {
         const roleRoutes = {
             admin: '/admin/books',
             professor: '/professor/my-books',
-            student: '/student/library'
+            student: '/student/library',
+            niveis: '/niveis/library'
         };
         return <Navigate to={roleRoutes[user.role]} replace />;
     }

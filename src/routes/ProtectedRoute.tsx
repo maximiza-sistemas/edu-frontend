@@ -34,7 +34,8 @@ export default function ProtectedRoute({ allowedRoles }: ProtectedRouteProps) {
         const roleRoutes = {
             admin: '/admin',
             professor: '/professor',
-            student: '/student'
+            student: '/student',
+            niveis: '/niveis'
         };
         return <Navigate to={roleRoutes[user.role]} replace />;
     }

@@ -24,6 +24,7 @@ const adminNav: NavItem[] = [
     { path: '/admin/users', label: 'Gerenciar Usuários', icon: <Users size={20} /> },
     { path: '/admin/curriculum', label: 'Componentes Curriculares', icon: <Layers size={20} /> },
     { path: '/admin/series', label: 'Séries', icon: <GraduationCap size={20} /> },
+    { path: '/admin/levels', label: 'Níveis', icon: <Layers size={20} /> },
 ];
 
 const professorNav: NavItem[] = [
@@ -35,6 +36,10 @@ const studentNav: NavItem[] = [
     { path: '/student/library', label: 'Minha Biblioteca', icon: <Library size={20} /> },
 ];
 
+const niveisNav: NavItem[] = [
+    { path: '/niveis/library', label: 'Biblioteca por Níveis', icon: <Library size={20} /> },
+];
+
 export default function Sidebar() {
     const { user, logout } = useAuth();
     const location = useLocation();
@@ -44,6 +49,7 @@ export default function Sidebar() {
             case 'admin': return adminNav;
             case 'professor': return professorNav;
             case 'student': return studentNav;
+            case 'niveis': return niveisNav;
             default: return [];
         }
     };
@@ -53,6 +59,7 @@ export default function Sidebar() {
             case 'admin': return 'ADMIN';
             case 'professor': return 'PROFESSOR';
             case 'student': return 'ALUNO';
+            case 'niveis': return 'NÍVEIS';
             default: return '';
         }
     };

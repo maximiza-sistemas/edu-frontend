@@ -16,7 +16,7 @@ export default function ProfessorMyBooks() {
         search,
         curriculumComponent: filterComponent as any,
         classGroup: filterClass as any
-    });
+    }).filter(book => !book.level);
 
     return (
         <div className="my-books animate-fadeIn">

@@ -13,6 +13,8 @@ import ManageBooks from './pages/Admin/ManageBooks';
 import ManageUsers from './pages/Admin/ManageUsers';
 import ManageCurriculum from './pages/Admin/ManageCurriculum';
 import ManageSeries from './pages/Admin/ManageSeries';
+import ManageLevels from './pages/Admin/ManageLevels';
+import NiveisLibrary from './pages/Niveis/NiveisLibrary';
 
 // Professor Pages
 // Professor Pages
@@ -33,7 +35,7 @@ function App() {
             <Route path="/" element={<Navigate to="/login" replace />} />
 
             {/* Book Reader - accessible by all authenticated users */}
-            <Route element={<ProtectedRoute allowedRoles={['admin', 'professor', 'student']} />}>
+            <Route element={<ProtectedRoute allowedRoles={['admin', 'professor', 'student', 'niveis']} />}>
               <Route path="/reader/:bookId" element={<BookReader />} />
             </Route>
 
@@ -45,6 +47,7 @@ function App() {
                 <Route path="/admin/users" element={<ManageUsers />} />
                 <Route path="/admin/curriculum" element={<ManageCurriculum />} />
                 <Route path="/admin/series" element={<ManageSeries />} />
+                <Route path="/admin/levels" element={<ManageLevels />} />
               </Route>
             </Route>
 
@@ -62,6 +65,14 @@ function App() {
               <Route element={<MainLayout />}>
                 <Route path="/student" element={<Navigate to="/student/library" replace />} />
                 <Route path="/student/library" element={<StudentLibrary />} />
+              </Route>
+            </Route>
+
+            {/* Níveis Routes */}
+            <Route element={<ProtectedRoute allowedRoles={['niveis']} />}>
+              <Route element={<MainLayout />}>
+                <Route path="/niveis" element={<Navigate to="/niveis/library" replace />} />
+                <Route path="/niveis/library" element={<NiveisLibrary />} />
               </Route>
             </Route>
 
