@@ -5,7 +5,7 @@ import { Plus, Edit2, Trash2, X, Upload, FileText, Loader2, Check, Eye, BookOpen
 import PageBanner from '../../components/PageBanner';
 import { Book, BookFilters as BookFiltersType, BOOK_TYPES, BookType, ClassGroup } from '../../types';
 import BookFilters from '../../components/BookFilters';
-import { uploadApi, curriculumApi, seriesApi, CurriculumComponent, Series } from '../../services/api';
+import { uploadApi, curriculumApi, seriesApi, levelsApi, CurriculumComponent, Series, Level } from '../../services/api';
 
 // Helper to get absolute image URL
 const getImageUrl = (url: string) => {
@@ -29,7 +29,9 @@ export default function ManageBooks() {
         pdfUrl: '',
         curriculumComponent: '',
         bookType: 'student' as BookType,
-        classGroups: [] as string[]
+        classGroups: [] as string[],
+        classMode: 'series' as 'series' | 'level',
+        level: '' as string
     });
 
     // Curriculum components from API
@@ -38,9 +40,13 @@ export default function ManageBooks() {
     // Series from API
     const [seriesList, setSeriesList] = useState<Series[]>([]);
 
+    // Levels from API
+    const [levelsList, setLevelsList] = useState<Level[]>([]);
+
     useEffect(() => {
         loadCurriculumComponents();
         loadSeries();
+        loadLevels();
     }, []);
 
     const loadCurriculumComponents = async () => {
@@ -62,6 +68,15 @@ export default function ManageBooks() {
             setSeriesList(data);
         } catch (err) {
             console.error('Error loading series:', err);
+        }
+    };
+
+    const loadLevels = async () => {
+        try {
+            const data = await levelsApi.getAll();
+            setLevelsList(data);
+        } catch (err) {
+            console.error('Error loading levels:', err);
         }
     };
 
@@ -92,7 +107,9 @@ export default function ManageBooks() {
                 pdfUrl: book.pdf_url || '',
                 curriculumComponent: book.curriculum_component || '',
                 bookType: book.book_type || 'student',
-                classGroups: book.class_groups as ClassGroup[] || []
+                classGroups: book.class_groups as ClassGroup[] || [],
+                classMode: book.level ? 'level' : 'series',
+                level: book.level || ''
             });
             setPdfFile(null);
             setUploadSuccess(!!book.pdf_url);
@@ -108,7 +125,9 @@ export default function ManageBooks() {
                 pdfUrl: '',
                 curriculumComponent: 'Matemática',
                 bookType: 'student',
-                classGroups: []
+                classGroups: [],
+                classMode: 'series',
+                level: ''
             });
             setPdfFile(null);
             setUploadSuccess(false);
@@ -129,7 +148,9 @@ export default function ManageBooks() {
             pdfUrl: '',
             curriculumComponent: 'Matemática',
             bookType: 'student',
-            classGroups: []
+            classGroups: [],
+            classMode: 'series',
+            level: ''
         });
         setPdfFile(null);
         setUploadError(null);
@@ -142,6 +163,15 @@ export default function ManageBooks() {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
+        if (formData.classMode === 'level' && !formData.level) {
+            alert('Selecione um nível.');
+            return;
+        }
+        if (formData.classMode === 'series' && formData.classGroups.length === 0) {
+            alert('Selecione ao menos uma turma.');
+            return;
+        }
+
         const cover_url = formData.coverUrl || '';
 
         const bookData = {
@@ -152,7 +182,8 @@ export default function ManageBooks() {
             pdf_url: formData.pdfUrl || undefined,
             curriculum_component: formData.curriculumComponent,
             book_type: formData.bookType,
-            class_groups: formData.classGroups
+            class_groups: formData.classMode === 'series' ? formData.classGroups : [],
+            level: formData.classMode === 'level' ? formData.level : null
         };
 
         try {
@@ -560,20 +591,48 @@ export default function ManageBooks() {
                                     </div>
                                 </div>
                                 <div className="input-group">
-                                    <label>Turmas</label>
-                                    <div className="class-grid">
-                                        {seriesList.map(series => (
-                                            <label key={series.id} className={`class-checkbox ${formData.classGroups.includes(series.name) ? 'checked' : ''}`}>
-                                                <input
-                                                    type="checkbox"
-                                                    checked={formData.classGroups.includes(series.name)}
-                                                    onChange={() => toggleClassGroup(series.name)}
-                                                />
-                                                <span>{series.name}</span>
-                                            </label>
-                                        ))}
-                                    </div>
+                                    <label>Classificação do Livro</label>
+                                    <select
+                                        className="select"
+                                        value={formData.classMode}
+                                        onChange={e => setFormData({ ...formData, classMode: e.target.value as 'series' | 'level' })}
+                                    >
+                                        <option value="series">Por Ano/Série</option>
+                                        <option value="level">Por Nível</option>
+                                    </select>
                                 </div>
+
+                                {formData.classMode === 'series' ? (
+                                    <div className="input-group">
+                                        <label>Turmas</label>
+                                        <div className="class-grid">
+                                            {seriesList.map(series => (
+                                                <label key={series.id} className={`class-checkbox ${formData.classGroups.includes(series.name) ? 'checked' : ''}`}>
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={formData.classGroups.includes(series.name)}
+                                                        onChange={() => toggleClassGroup(series.name)}
+                                                    />
+                                                    <span>{series.name}</span>
+                                                </label>
+                                            ))}
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="input-group">
+                                        <label>Nível</label>
+                                        <select
+                                            className="select"
+                                            value={formData.level}
+                                            onChange={e => setFormData({ ...formData, level: e.target.value })}
+                                        >
+                                            <option value="">Selecione um nível</option>
+                                            {levelsList.map(lvl => (
+                                                <option key={lvl.id} value={lvl.name}>{lvl.name}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                )}
                                 <div className="input-group">
                                     <label>Arquivo PDF</label>
                                     <div className="pdf-upload-container">
