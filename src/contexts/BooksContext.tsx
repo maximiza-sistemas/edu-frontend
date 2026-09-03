@@ -69,8 +69,8 @@ export function BooksProvider({ children }: { children: ReactNode }) {
 
     const refreshBooks = useCallback(async () => {
         try {
-            const response = await booksApi.getAll();
-            setBooks(response.data);
+            const allBooks = await booksApi.getAllPages();
+            setBooks(allBooks);
         } catch (err) {
             console.error('Failed to load books:', err);
             setError('Erro ao carregar livros');
