@@ -192,16 +192,26 @@ export const usersApi = {
 };
 
 // ============== Books API ==============
+export interface BookQueryParams {
+    search?: string;
+    curriculum_component?: string;
+    class_group?: string;
+    professor_id?: string;
+    student_id?: string;
+    level?: string;
+}
+
+// Page size used when fetching the full catalog; the backend caps responses,
+// so the client must walk every page or books past the cap never show up.
+const BOOKS_PAGE_SIZE = 100;
+// Upper bound on pages walked, so a backend that ignores offset can't loop forever.
+const MAX_BOOK_PAGES = 50;
+
 export const booksApi = {
-    async getAll(params?: {
-        search?: string;
-        curriculum_component?: string;
-        class_group?: string;
-        professor_id?: string;
-        student_id?: string;
-        level?: string;
-    }): Promise<PaginatedResponse<Book>> {
+    async getAll(params?: BookQueryParams & { limit?: number; offset?: number }): Promise<PaginatedResponse<Book>> {
         const searchParams = new URLSearchParams();
+        if (params?.limit !== undefined) searchParams.set('limit', String(params.limit));
+        if (params?.offset !== undefined) searchParams.set('offset', String(params.offset));
         if (params?.search) searchParams.set('search', params.search);
         if (params?.curriculum_component && params.curriculum_component !== 'all') {
             searchParams.set('curriculum_component', params.curriculum_component);
@@ -222,6 +232,24 @@ export const booksApi = {
         const response = await fetchWithAuth(`/books?${searchParams}`);
         if (!response.ok) throw new Error('Erro ao buscar livros');
         return response.json();
+    },
+
+    /**
+     * Fetches every book matching `params`, walking the API pagination
+     * until the reported `total` is reached.
+     */
+    async getAllPages(params?: BookQueryParams): Promise<Book[]> {
+        const firstPage = await booksApi.getAll({ ...params, limit: BOOKS_PAGE_SIZE, offset: 0 });
+        const total = typeof firstPage.total === 'number' ? firstPage.total : firstPage.data.length;
+        let collected: Book[] = firstPage.data;
+
+        for (let page = 1; collected.length < total && page < MAX_BOOK_PAGES; page++) {
+            const next = await booksApi.getAll({ ...params, limit: BOOKS_PAGE_SIZE, offset: collected.length });
+            if (next.data.length === 0) break;
+            collected = [...collected, ...next.data];
+        }
+
+        return collected;
     },
 
     async getById(id: string): Promise<Book> {
