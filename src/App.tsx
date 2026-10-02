@@ -6,7 +6,7 @@ import MainLayout from './components/Layout/MainLayout';
 
 // Pages
 import Login from './pages/Login';
-import BookReader from './pages/BookReader';
+import ContentViewer from './pages/ContentViewer';
 
 // Admin Pages
 import ManageBooks from './pages/Admin/ManageBooks';
@@ -34,9 +34,9 @@ function App() {
             <Route path="/login" element={<Login />} />
             <Route path="/" element={<Navigate to="/login" replace />} />
 
-            {/* Book Reader - accessible by all authenticated users */}
+            {/* Material viewer (PDF, video, presentation) - accessible by all authenticated users */}
             <Route element={<ProtectedRoute allowedRoles={['admin', 'professor', 'student', 'niveis']} />}>
-              <Route path="/reader/:bookId" element={<BookReader />} />
+              <Route path="/reader/:bookId" element={<ContentViewer />} />
             </Route>
 
             {/* Admin Routes */}

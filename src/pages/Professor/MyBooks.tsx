@@ -21,8 +21,8 @@ export default function ProfessorMyBooks() {
     return (
         <div className="my-books animate-fadeIn">
             <PageBanner
-                title="Biblioteca de Livros"
-                subtitle="Acesse os livros disponíveis"
+                title="Biblioteca de Materiais"
+                subtitle="Acesse os materiais disponíveis"
                 icon={<BookOpen size={28} />}
             />
 
@@ -31,7 +31,7 @@ export default function ProfessorMyBooks() {
                     <Search size={18} />
                     <input
                         type="text"
-                        placeholder="Buscar livros..."
+                        placeholder="Buscar materiais..."
                         value={search}
                         onChange={e => setSearch(e.target.value)}
                         className="input"
@@ -63,7 +63,7 @@ export default function ProfessorMyBooks() {
                 <div className="books-list">
                     {isLoading ? (
                         <div className="empty-state">
-                            <p>Carregando livros...</p>
+                            <p>Carregando materiais...</p>
                         </div>
                     ) : filteredBooks.length > 0 ? (
                         filteredBooks.map(book => (
@@ -77,8 +77,8 @@ export default function ProfessorMyBooks() {
                             <BookOpen size={48} />
                             <p>
                                 {books.length === 0
-                                    ? 'Nenhum livro disponível ainda.'
-                                    : 'Nenhum livro corresponde aos filtros selecionados.'}
+                                    ? 'Nenhum material disponível ainda.'
+                                    : 'Nenhum material corresponde aos filtros selecionados.'}
                             </p>
                         </div>
                     )}

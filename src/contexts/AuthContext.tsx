@@ -3,7 +3,8 @@ import { authApi, usersApi, User, removeToken, getToken } from '../services/api'
 
 // Re-export types for backwards compatibility
 export type { User } from '../services/api';
-export type UserRole = 'admin' | 'professor' | 'student';
+import type { UserRole } from '../types';
+export type { UserRole };
 export type ClassGroup = '1º Ano A' | '1º Ano B' | '2º Ano A' | '2º Ano B' | '3º Ano A' | '3º Ano B' | '4º Ano A' | '4º Ano B' | '5º Ano A' | '5º Ano B';
 
 interface AuthContextType {

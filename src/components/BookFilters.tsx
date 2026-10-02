@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { BookFilters as BookFiltersType } from '../types';
+import { BookFilters as BookFiltersType, CONTENT_TYPES } from '../types';
 import { seriesApi, Series } from '../services/api';
 import { Search, Filter, X } from 'lucide-react';
 import './BookFilters.css';
@@ -15,7 +15,8 @@ export default function BookFilters({
         search: '',
         curriculumComponent: 'all',
         seriesId: 'all',
-        bookType: 'all'
+        bookType: 'all',
+        contentType: 'all'
     });
     const [isExpanded, setIsExpanded] = useState(false);
     const [seriesList, setSeriesList] = useState<Series[]>([]);
@@ -44,7 +45,8 @@ export default function BookFilters({
             search: '',
             curriculumComponent: 'all',
             seriesId: 'all',
-            bookType: 'all'
+            bookType: 'all',
+            contentType: 'all'
         };
         setFilters(clearedFilters);
         onFilterChange(clearedFilters);
@@ -54,7 +56,8 @@ export default function BookFilters({
         filters.search ||
         (filters.curriculumComponent && filters.curriculumComponent !== 'all') ||
         (filters.seriesId && filters.seriesId !== 'all') ||
-        (filters.bookType && filters.bookType !== 'all');
+        (filters.bookType && filters.bookType !== 'all') ||
+        (filters.contentType && filters.contentType !== 'all');
 
     return (
         <div className="book-filters">
@@ -128,6 +131,20 @@ export default function BookFilters({
                             <option value="all">Todos os perfis</option>
                             <option value="professor">Professor</option>
                             <option value="student">Aluno</option>
+                        </select>
+                    </div>
+
+                    <div className="filter-group">
+                        <label>Formato</label>
+                        <select
+                            value={filters.contentType}
+                            onChange={(e) => handleChange('contentType', e.target.value)}
+                            className="select"
+                        >
+                            <option value="all">Todos os formatos</option>
+                            {CONTENT_TYPES.map(type => (
+                                <option key={type.value} value={type.value}>{type.label}</option>
+                            ))}
                         </select>
                     </div>
                 </div>

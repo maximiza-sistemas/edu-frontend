@@ -1,10 +1,12 @@
 import { useAuth } from '../../contexts/AuthContext';
 import { useBooks } from '../../contexts/BooksContext';
 import { useNavigate } from 'react-router-dom';
-import { BookOpen, Search, FileText, Eye, Library } from 'lucide-react';
+import { BookOpen, Search, FileText, Library } from 'lucide-react';
 import PageBanner from '../../components/PageBanner';
+import ContentTypeIcon from '../../components/ContentTypeIcon';
 import { useState } from 'react';
 import { uploadApi } from '../../services/api';
+import { CONTENT_LABELS, getContentType, hasContent } from '../../utils/media';
 import './MyLibrary.css';
 
 // Helper to get absolute image URL
@@ -41,7 +43,7 @@ export default function StudentLibrary() {
         <div className="my-library animate-fadeIn">
             <PageBanner
                 title="Minha Biblioteca"
-                subtitle={user?.class_group ? `Turma: ${user.class_group}` : 'Acesse seus livros'}
+                subtitle={user?.class_group ? `Turma: ${user.class_group}` : 'Acesse seus materiais'}
                 icon={<Library size={28} />}
             />
 
@@ -49,7 +51,7 @@ export default function StudentLibrary() {
                 <Search size={18} />
                 <input
                     type="text"
-                    placeholder="Buscar livros..."
+                    placeholder="Buscar materiais..."
                     value={search}
                     onChange={e => setSearch(e.target.value)}
                     className="input"
@@ -60,13 +62,19 @@ export default function StudentLibrary() {
                 {filteredBooks.map(book => {
                     const coverUrl = getImageUrl(book.cover_url);
                     const hasValidCover = book.cover_url && !book.cover_url.includes('unsplash');
+                    const contentType = getContentType(book);
+                    const labels = CONTENT_LABELS[contentType];
+                    const isAvailable = hasContent(book);
+                    const openViewer = () => {
+                        if (isAvailable) navigate(`/reader/${book.id}`);
+                    };
 
                     return (
                         <div
                             key={book.id}
                             className="book-card animate-slideUp"
-                            onClick={() => book.pdf_url && navigate(`/reader/${book.id}`)}
-                            style={{ cursor: book.pdf_url ? 'pointer' : 'default' }}
+                            onClick={openViewer}
+                            style={{ cursor: isAvailable ? 'pointer' : 'default' }}
                         >
                             <div className="book-card-cover-container">
                                 {hasValidCover ? (
@@ -80,6 +88,7 @@ export default function StudentLibrary() {
                                             src={coverUrl}
                                             alt={book.title}
                                             className="book-card-cover"
+                                            referrerPolicy="no-referrer"
                                             style={{ position: 'relative', zIndex: 1 }}
                                             onError={(e) => {
                                                 const target = e.target as HTMLImageElement;
@@ -99,6 +108,12 @@ export default function StudentLibrary() {
                                         <span>Sem Capa</span>
                                     </div>
                                 )}
+                                {contentType !== 'pdf' && (
+                                    <span className={`book-card-format book-card-format-${contentType}`}>
+                                        <ContentTypeIcon type={contentType} size={14} />
+                                        {labels.name}
+                                    </span>
+                                )}
                             </div>
 
                             <div className="book-card-content">
@@ -116,12 +131,12 @@ export default function StudentLibrary() {
                                         className="btn btn-read"
                                         onClick={(e) => {
                                             e.stopPropagation();
-                                            if (book.pdf_url) navigate(`/reader/${book.id}`);
+                                            openViewer();
                                         }}
-                                        disabled={!book.pdf_url}
+                                        disabled={!isAvailable}
                                     >
-                                        <Eye size={18} />
-                                        <span>{book.pdf_url ? 'Ler Agora' : 'Sem PDF'}</span>
+                                        <ContentTypeIcon type={contentType} size={18} />
+                                        <span>{isAvailable ? labels.action : labels.missing}</span>
                                     </button>
                                 </div>
                             </div>
@@ -133,11 +148,11 @@ export default function StudentLibrary() {
             {filteredBooks.length === 0 && (
                 <div className="empty-state">
                     <BookOpen size={64} />
-                    <h3>Nenhum livro encontrado</h3>
+                    <h3>Nenhum material encontrado</h3>
                     <p>
                         {studentBooks.length === 0
-                            ? 'Não há livros disponíveis para sua turma ainda.'
-                            : 'Nenhum livro corresponde à sua busca.'}
+                            ? 'Não há materiais disponíveis para sua turma ainda.'
+                            : 'Nenhum material corresponde à sua busca.'}
                     </p>
                 </div>
             )}

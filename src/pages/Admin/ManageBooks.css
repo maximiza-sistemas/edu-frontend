@@ -460,3 +460,276 @@
         transform: rotate(360deg);
     }
 }
+
+/* Form layout */
+.manage-books .modal-body {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+}
+
+.manage-books .btn:disabled,
+.manage-books .select:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.upload-area:focus-visible {
+    outline: none;
+    border-color: var(--color-accent-primary);
+    color: var(--color-accent-primary);
+    box-shadow: 0 0 0 3px var(--color-accent-glow);
+}
+
+/* Material format tokens; dark values keep the badge text readable on dark cards */
+.manage-books {
+    --format-video-color: #be185d;
+    --format-video-bg: rgba(219, 39, 119, 0.12);
+    --format-pptx-color: #c2410c;
+    --format-pptx-bg: rgba(234, 88, 12, 0.12);
+}
+
+[data-theme="dark"] .manage-books {
+    --format-video-color: #f472b6;
+    --format-video-bg: rgba(244, 114, 182, 0.16);
+    --format-pptx-color: #fb923c;
+    --format-pptx-bg: rgba(251, 146, 60, 0.16);
+}
+
+@media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) .manage-books {
+        --format-video-color: #f472b6;
+        --format-video-bg: rgba(244, 114, 182, 0.16);
+        --format-pptx-color: #fb923c;
+        --format-pptx-bg: rgba(251, 146, 60, 0.16);
+    }
+}
+
+/* Material Format Badges */
+.badge-format {
+    font-weight: 600;
+}
+
+.badge-format svg {
+    flex-shrink: 0;
+}
+
+.badge-format-video {
+    background: var(--format-video-bg);
+    color: var(--format-video-color);
+}
+
+.badge-format-pptx {
+    background: var(--format-pptx-bg);
+    color: var(--format-pptx-color);
+}
+
+/* Video Source Toggle */
+.media-source-toggle {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--spacing-xs);
+    padding: var(--spacing-xs);
+    background: var(--color-bg-tertiary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+}
+
+.media-source-option {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--spacing-sm);
+    min-width: 0;
+    padding: var(--spacing-sm) var(--spacing-md);
+    font-family: var(--font-family);
+    font-size: var(--font-size-sm);
+    font-weight: 500;
+    text-align: center;
+    color: var(--color-text-secondary);
+    background: transparent;
+    border: none;
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: background var(--transition-base), color var(--transition-base), box-shadow var(--transition-base);
+}
+
+.media-source-option svg {
+    flex-shrink: 0;
+}
+
+.media-source-option:hover:not(:disabled) {
+    color: var(--color-text-primary);
+    background: var(--color-bg-hover);
+}
+
+.media-source-option.active,
+.media-source-option.active:hover:not(:disabled) {
+    color: var(--color-accent-primary);
+    background: var(--color-bg-secondary);
+    box-shadow: var(--shadow-sm), 0 0 0 1px var(--border-color-hover);
+}
+
+.media-source-option:focus-visible {
+    outline: 2px solid var(--color-accent-secondary);
+    outline-offset: 1px;
+}
+
+.media-source-option:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+}
+
+/* Upload Progress */
+.upload-progress {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+}
+
+.upload-progress-track {
+    flex: 1;
+    height: 8px;
+    overflow: hidden;
+    background: var(--color-bg-tertiary);
+    border-radius: var(--radius-full);
+    box-shadow: inset 0 0 0 1px var(--border-color);
+}
+
+.upload-progress-fill {
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, var(--color-accent-tertiary), var(--color-accent-secondary));
+    border-radius: inherit;
+    transform-origin: left center;
+    transition: transform var(--transition-base);
+}
+
+.upload-progress-label {
+    min-width: 3.5em;
+    text-align: right;
+    font-size: var(--font-size-xs);
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    color: var(--color-text-secondary);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .upload-progress-fill {
+        transition: none;
+    }
+}
+
+/* Video Link */
+.input.input-invalid {
+    border-color: var(--color-error);
+}
+
+.input.input-invalid:focus {
+    border-color: var(--color-error);
+    box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.15);
+}
+
+.video-link-preview {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+    padding: var(--spacing-sm);
+    background: var(--color-bg-tertiary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+}
+
+.video-link-thumb {
+    width: 144px;
+    aspect-ratio: 16 / 9;
+    flex-shrink: 0;
+    object-fit: cover;
+    border-radius: var(--radius-md);
+    background: var(--color-bg-secondary);
+}
+
+.video-link-thumb-empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--format-video-color);
+}
+
+.video-link-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+
+.video-link-provider {
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+    color: var(--color-text-primary);
+}
+
+@media (max-width: 480px) {
+    .manage-books .modal-body {
+        padding: var(--spacing-lg);
+    }
+
+    .media-source-toggle {
+        grid-template-columns: 1fr;
+    }
+
+    .pdf-selected {
+        flex-wrap: wrap;
+        gap: var(--spacing-sm) var(--spacing-md);
+    }
+
+    .pdf-selected .pdf-filename {
+        flex: 1 1 calc(100% - 2.5rem);
+    }
+
+    .video-link-preview {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .video-link-thumb {
+        width: 100%;
+    }
+}
+
+/* Upload areas are buttons so they work from the keyboard */
+button.upload-area {
+    width: 100%;
+    background: transparent;
+    font-family: inherit;
+    font-size: inherit;
+    text-align: center;
+}
+
+.cover-preview {
+    width: 100px;
+    height: 140px;
+    margin-top: var(--spacing-sm);
+    overflow: hidden;
+    background: var(--color-bg-tertiary);
+    border-radius: var(--radius-sm);
+}
+
+.cover-preview img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+/* Save errors (validation or backend) next to the modal actions */
+.manage-books .modal-footer {
+    align-items: center;
+}
+
+.form-error {
+    flex: 1;
+    margin: 0;
+    color: var(--color-error);
+    font-size: var(--font-size-sm);
+}

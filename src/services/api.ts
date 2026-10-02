@@ -56,17 +56,24 @@ export interface User {
     updated_at?: string;
 }
 
+// Material format: PDF books, videos (upload or YouTube/Vimeo link) and PowerPoint presentations
+export type ContentType = 'pdf' | 'video' | 'pptx';
+
 export interface Book {
     id: string;
     title: string;
     author: string;
     description: string;
     cover_url: string;
-    pdf_url?: string;
+    pdf_url?: string | null;
+    // Absent on rows created before the column existed; treat as 'pdf'
+    content_type?: ContentType;
+    // Video file (/uploads/videos/...), YouTube/Vimeo link, or presentation file (/uploads/presentations/...)
+    media_url?: string | null;
     curriculum_component: string;
     book_type: 'student' | 'professor';
     class_groups: string[];
-    level?: string;
+    level?: string | null;
     created_at?: string;
     updated_at?: string;
 }
@@ -361,49 +368,131 @@ export interface UploadResponse {
     size: number;
     pdfUrl?: string;
     imageUrl?: string;
+    videoUrl?: string;
+    presentationUrl?: string;
+}
+
+export interface UploadOptions {
+    onProgress?: (percent: number) => void;
+    // Aborting it cancels the request; the returned promise then rejects with an AbortError
+    signal?: AbortSignal;
+}
+
+export const UPLOAD_CANCELLED_MESSAGE = 'Envio cancelado';
+
+function createAbortError(): Error {
+    return Object.assign(new Error(UPLOAD_CANCELLED_MESSAGE), { name: 'AbortError' });
+}
+
+export function isAbortError(err: unknown): boolean {
+    return err instanceof Error && err.name === 'AbortError';
+}
+
+// Large files (videos) need upload progress, which fetch() does not expose, so use XHR.
+function uploadWithProgress(
+    endpoint: string,
+    fieldName: string,
+    file: File,
+    fallbackError: string,
+    { onProgress, signal }: UploadOptions = {}
+): Promise<UploadResponse> {
+    return new Promise((resolve, reject) => {
+        if (signal?.aborted) {
+            reject(createAbortError());
+            return;
+        }
+
+        const xhr = new XMLHttpRequest();
+        const formData = new FormData();
+        formData.append(fieldName, file);
+
+        const abortRequest = () => xhr.abort();
+        signal?.addEventListener('abort', abortRequest, { once: true });
+        const settle = (finish: () => void) => {
+            signal?.removeEventListener('abort', abortRequest);
+            finish();
+        };
+
+        xhr.open('POST', `${API_BASE_URL}${endpoint}`);
+        const token = getToken();
+        if (token) xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+
+        if (onProgress) {
+            xhr.upload.onprogress = (event) => {
+                if (event.lengthComputable) {
+                    onProgress(Math.round((event.loaded / event.total) * 100));
+                }
+            };
+        }
+
+        xhr.onload = () => {
+            let body: { error?: string } & Partial<UploadResponse> = {};
+            try {
+                body = JSON.parse(xhr.responseText);
+            } catch {
+                // Non-JSON body (e.g. proxy error page); fall through to status handling
+            }
+            if (xhr.status === 401) removeToken();
+            if (xhr.status >= 200 && xhr.status < 300) {
+                settle(() => resolve(body as UploadResponse));
+            } else if (xhr.status === 413) {
+                settle(() => reject(new Error(body.error || 'Arquivo maior que o limite permitido')));
+            } else {
+                settle(() => reject(new Error(body.error || fallbackError)));
+            }
+        };
+        xhr.onerror = () => settle(() => reject(new Error(fallbackError)));
+        xhr.onabort = () => settle(() => reject(createAbortError()));
+
+        xhr.send(formData);
+    });
+}
+
+// Small files (PDF, images) are sent with fetch; the signal cancels the request
+async function uploadWithFetch(
+    endpoint: string,
+    fieldName: string,
+    file: Blob | File,
+    fallbackError: string,
+    signal?: AbortSignal
+): Promise<UploadResponse> {
+    const token = getToken();
+    const formData = new FormData();
+    formData.append(fieldName, file);
+
+    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+        method: 'POST',
+        headers: {
+            'Authorization': `Bearer ${token}`
+        },
+        body: formData,
+        signal
+    });
+
+    if (!response.ok) {
+        // Proxies answer some errors (e.g. 413) with an HTML page
+        const error: { error?: string } = await response.json().catch(() => ({}));
+        throw new Error(error.error || fallbackError);
+    }
+
+    return response.json();
 }
 
 export const uploadApi = {
-    async uploadPdf(file: File): Promise<UploadResponse> {
-        const token = getToken();
-        const formData = new FormData();
-        formData.append('pdf', file);
-
-        const response = await fetch(`${API_BASE_URL}/upload/pdf`, {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${token}`
-            },
-            body: formData
-        });
-
-        if (!response.ok) {
-            const error = await response.json();
-            throw new Error(error.error || 'Erro ao fazer upload do PDF');
-        }
-
-        return response.json();
+    uploadVideo(file: File, options?: UploadOptions): Promise<UploadResponse> {
+        return uploadWithProgress('/upload/video', 'video', file, 'Erro ao fazer upload do vídeo', options);
     },
 
-    async uploadImage(file: Blob | File): Promise<UploadResponse> {
-        const token = getToken();
-        const formData = new FormData();
-        formData.append('image', file);
+    uploadPresentation(file: File, options?: UploadOptions): Promise<UploadResponse> {
+        return uploadWithProgress('/upload/presentation', 'presentation', file, 'Erro ao fazer upload da apresentação', options);
+    },
 
-        const response = await fetch(`${API_BASE_URL}/upload/image`, {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${token}`
-            },
-            body: formData
-        });
+    uploadPdf(file: File, signal?: AbortSignal): Promise<UploadResponse> {
+        return uploadWithFetch('/upload/pdf', 'pdf', file, 'Erro ao fazer upload do PDF', signal);
+    },
 
-        if (!response.ok) {
-            const error = await response.json();
-            throw new Error(error.error || 'Erro ao fazer upload da imagem');
-        }
-
-        return response.json();
+    uploadImage(file: Blob | File, signal?: AbortSignal): Promise<UploadResponse> {
+        return uploadWithFetch('/upload/image', 'image', file, 'Erro ao fazer upload da imagem', signal);
     },
 
     getPdfUrl(pdfUrl: string): string {

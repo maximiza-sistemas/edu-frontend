@@ -15,7 +15,7 @@ export default function StudentDashboard() {
 
     const stats = [
         {
-            label: 'Meus Livros',
+            label: 'Meus Materiais',
             value: studentBooks.length,
             icon: <BookOpen size={24} />,
             color: 'var(--color-student)',
@@ -64,13 +64,13 @@ export default function StudentDashboard() {
 
             <div className="dashboard-section" style={{ marginTop: 'var(--spacing-xl)' }}>
                 <div className="section-header">
-                    <h2>Meus Livros</h2>
+                    <h2>Meus Materiais</h2>
                     <Link to="/student/library" className="section-link">Ver biblioteca</Link>
                 </div>
                 <div className="books-list">
                     {isLoading ? (
                         <div className="empty-state">
-                            <p>Carregando livros...</p>
+                            <p>Carregando materiais...</p>
                         </div>
                     ) : studentBooks.length > 0 ? (
                         studentBooks.slice(0, 4).map(book => (
@@ -84,7 +84,7 @@ export default function StudentDashboard() {
                             <BookOpen size={48} />
                             <p>
                                 {user?.class_group
-                                    ? 'Nenhum livro disponível para sua turma ainda.'
+                                    ? 'Nenhum material disponível para sua turma ainda.'
                                     : 'Você não está associado a nenhuma turma. Contate o administrador.'}
                             </p>
                         </div>
