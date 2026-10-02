@@ -1,3 +1,6 @@
+import { isAbortError, UPLOAD_CANCELLED_MESSAGE, uploadFileInChunks } from './chunkedUpload';
+import type { ChunkedUploadConfig } from './chunkedUpload';
+
 // API Configuration
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
 // Extract root URL (remove /api suffix if present)
@@ -378,75 +381,15 @@ export interface UploadOptions {
     signal?: AbortSignal;
 }
 
-export const UPLOAD_CANCELLED_MESSAGE = 'Envio cancelado';
+export { isAbortError, UPLOAD_CANCELLED_MESSAGE };
 
-function createAbortError(): Error {
-    return Object.assign(new Error(UPLOAD_CANCELLED_MESSAGE), { name: 'AbortError' });
-}
-
-export function isAbortError(err: unknown): boolean {
-    return err instanceof Error && err.name === 'AbortError';
-}
-
-// Large files (videos) need upload progress, which fetch() does not expose, so use XHR.
-function uploadWithProgress(
-    endpoint: string,
-    fieldName: string,
-    file: File,
-    fallbackError: string,
-    { onProgress, signal }: UploadOptions = {}
-): Promise<UploadResponse> {
-    return new Promise((resolve, reject) => {
-        if (signal?.aborted) {
-            reject(createAbortError());
-            return;
-        }
-
-        const xhr = new XMLHttpRequest();
-        const formData = new FormData();
-        formData.append(fieldName, file);
-
-        const abortRequest = () => xhr.abort();
-        signal?.addEventListener('abort', abortRequest, { once: true });
-        const settle = (finish: () => void) => {
-            signal?.removeEventListener('abort', abortRequest);
-            finish();
-        };
-
-        xhr.open('POST', `${API_BASE_URL}${endpoint}`);
-        const token = getToken();
-        if (token) xhr.setRequestHeader('Authorization', `Bearer ${token}`);
-
-        if (onProgress) {
-            xhr.upload.onprogress = (event) => {
-                if (event.lengthComputable) {
-                    onProgress(Math.round((event.loaded / event.total) * 100));
-                }
-            };
-        }
-
-        xhr.onload = () => {
-            let body: { error?: string } & Partial<UploadResponse> = {};
-            try {
-                body = JSON.parse(xhr.responseText);
-            } catch {
-                // Non-JSON body (e.g. proxy error page); fall through to status handling
-            }
-            if (xhr.status === 401) removeToken();
-            if (xhr.status >= 200 && xhr.status < 300) {
-                settle(() => resolve(body as UploadResponse));
-            } else if (xhr.status === 413) {
-                settle(() => reject(new Error(body.error || 'Arquivo maior que o limite permitido')));
-            } else {
-                settle(() => reject(new Error(body.error || fallbackError)));
-            }
-        };
-        xhr.onerror = () => settle(() => reject(new Error(fallbackError)));
-        xhr.onabort = () => settle(() => reject(createAbortError()));
-
-        xhr.send(formData);
-    });
-}
+// Videos and presentations can be hundreds of MB: they are sent in small chunks, each one finishing well
+// within the reverse proxy's request timeout (see chunkedUpload.ts)
+const chunkedUploadConfig: ChunkedUploadConfig = {
+    baseUrl: API_BASE_URL,
+    getToken,
+    onUnauthorized: removeToken
+};
 
 // Small files (PDF, images) are sent with fetch; the signal cancels the request
 async function uploadWithFetch(
@@ -480,11 +423,11 @@ async function uploadWithFetch(
 
 export const uploadApi = {
     uploadVideo(file: File, options?: UploadOptions): Promise<UploadResponse> {
-        return uploadWithProgress('/upload/video', 'video', file, 'Erro ao fazer upload do vídeo', options);
+        return uploadFileInChunks<UploadResponse>(chunkedUploadConfig, { ...options, kind: 'video', file, fallbackError: 'Erro ao fazer upload do vídeo' });
     },
 
     uploadPresentation(file: File, options?: UploadOptions): Promise<UploadResponse> {
-        return uploadWithProgress('/upload/presentation', 'presentation', file, 'Erro ao fazer upload da apresentação', options);
+        return uploadFileInChunks<UploadResponse>(chunkedUploadConfig, { ...options, kind: 'presentation', file, fallbackError: 'Erro ao fazer upload da apresentação' });
     },
 
     uploadPdf(file: File, signal?: AbortSignal): Promise<UploadResponse> {
