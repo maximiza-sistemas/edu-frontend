@@ -1,18 +1,39 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useBooks } from '../../contexts/BooksContext';
-import { Plus, Edit2, Trash2, X, Upload, FileText, Loader2, Check, Eye, BookOpen } from 'lucide-react';
+import { Plus, Edit2, Trash2, X, FileText, Eye, BookOpen, PlayCircle, Presentation, Loader2 } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import PageBanner from '../../components/PageBanner';
-import { Book, BookFilters as BookFiltersType, BOOK_TYPES, BookType, ClassGroup } from '../../types';
+import { Book, BookFilters as BookFiltersType, BookType, CONTENT_TYPES, ContentType } from '../../types';
 import BookFilters from '../../components/BookFilters';
 import { uploadApi, curriculumApi, seriesApi, levelsApi, CurriculumComponent, Series, Level } from '../../services/api';
+import { CONTENT_LABELS, getContentType, hasContent } from '../../utils/media';
+import CoverField from '../../components/admin/CoverField';
+import MaterialMediaField from '../../components/admin/MaterialMediaField';
+import { useMaterialMedia } from '../../components/admin/useMaterialMedia';
+import {
+    AUDIENCE_OPTIONS,
+    EMPTY_FORM,
+    buildBookPayload,
+    formFromBook,
+    getSubmitError
+} from '../../components/admin/materialForm';
+import type { ClassMode, MaterialForm } from '../../components/admin/materialForm';
+import './ManageBooks.css';
 
 // Helper to get absolute image URL
 const getImageUrl = (url: string) => {
     if (!url) return 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=400&h=600&fit=crop';
     return uploadApi.getFileUrl(url);
 };
-import './ManageBooks.css';
+
+const CONTENT_ICONS: Record<ContentType, LucideIcon> = {
+    pdf: FileText,
+    video: PlayCircle,
+    pptx: Presentation
+};
+
+const getErrorMessage = (err: unknown) => (err instanceof Error && err.message ? err.message : 'Erro ao salvar o material.');
 
 export default function ManageBooks() {
     const navigate = useNavigate();
@@ -21,18 +42,13 @@ export default function ManageBooks() {
     const [editingBook, setEditingBook] = useState<Book | null>(null);
     const [filters, setFilters] = useState<BookFiltersType>({});
 
-    const [formData, setFormData] = useState({
-        title: '',
-        author: '',
-        description: '',
-        coverUrl: '',
-        pdfUrl: '',
-        curriculumComponent: '',
-        bookType: 'student' as BookType,
-        classGroups: [] as string[],
-        classMode: 'series' as 'series' | 'level',
-        level: '' as string
-    });
+    const [formData, setFormData] = useState<MaterialForm>(EMPTY_FORM);
+    const media = useMaterialMedia(formData, setFormData);
+
+    // Save state: the ref blocks a second submit before React re-renders the disabled button
+    const [isSaving, setIsSaving] = useState(false);
+    const [saveError, setSaveError] = useState<string | null>(null);
+    const isSavingRef = useRef(false);
 
     // Curriculum components from API
     const [curriculumComponents, setCurriculumComponents] = useState<CurriculumComponent[]>([]);
@@ -80,286 +96,85 @@ export default function ManageBooks() {
         }
     };
 
-    // PDF upload state
-    const [pdfFile, setPdfFile] = useState<File | null>(null);
-    const [isUploading, setIsUploading] = useState(false);
-    const [uploadError, setUploadError] = useState<string | null>(null);
-    const [uploadSuccess, setUploadSuccess] = useState(false);
-    const fileInputRef = useRef<HTMLInputElement>(null);
-
-    // Cover upload state
-    const [coverFile, setCoverFile] = useState<File | null>(null);
-    const [isUploadingCover, setIsUploadingCover] = useState(false);
-    const [uploadCoverError, setUploadCoverError] = useState<string | null>(null);
-    const [uploadCoverSuccess, setUploadCoverSuccess] = useState(false);
-    const coverInputRef = useRef<HTMLInputElement>(null);
-
     const filteredBooks = filterBooks(filters);
 
     const openModal = (book?: Book) => {
-        if (book) {
-            setEditingBook(book);
-            setFormData({
-                title: book.title,
-                author: book.author,
-                description: book.description,
-                coverUrl: book.cover_url || '',
-                pdfUrl: book.pdf_url || '',
-                curriculumComponent: book.curriculum_component || '',
-                bookType: book.book_type || 'student',
-                classGroups: book.class_groups as ClassGroup[] || [],
-                classMode: book.level ? 'level' : 'series',
-                level: book.level || ''
-            });
-            setPdfFile(null);
-            setUploadSuccess(!!book.pdf_url);
-            setCoverFile(null);
-            setUploadCoverSuccess(!!book.cover_url);
-        } else {
-            setEditingBook(null);
-            setFormData({
-                title: '',
-                author: '',
-                description: '',
-                coverUrl: '',
-                pdfUrl: '',
-                curriculumComponent: 'Matemática',
-                bookType: 'student',
-                classGroups: [],
-                classMode: 'series',
-                level: ''
-            });
-            setPdfFile(null);
-            setUploadSuccess(false);
-            setCoverFile(null);
-            setUploadCoverSuccess(false);
-        }
+        media.resetAll();
+        setEditingBook(book ?? null);
+        setFormData(book ? formFromBook(book) : EMPTY_FORM);
+        setSaveError(null);
         setIsModalOpen(true);
     };
 
     const closeModal = () => {
+        if (isSavingRef.current) return;
+        if (media.isAnyUploading && !window.confirm('Um envio está em andamento e será cancelado. Deseja fechar mesmo assim?')) return;
+        media.resetAll();
         setIsModalOpen(false);
         setEditingBook(null);
-        setFormData({
-            title: '',
-            author: '',
-            description: '',
-            coverUrl: '',
-            pdfUrl: '',
-            curriculumComponent: 'Matemática',
-            bookType: 'student',
-            classGroups: [],
-            classMode: 'series',
-            level: ''
-        });
-        setPdfFile(null);
-        setUploadError(null);
-        setUploadSuccess(false);
-        setCoverFile(null);
-        setUploadCoverError(null);
-        setUploadCoverSuccess(false);
+        setFormData(EMPTY_FORM);
+        setSaveError(null);
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (isSavingRef.current || media.isAnyUploading) return;
 
-        if (formData.classMode === 'level' && !formData.level) {
-            alert('Selecione um nível.');
+        const validationError = getSubmitError(formData, media.pendingFiles);
+        if (validationError) {
+            setSaveError(validationError);
             return;
         }
-        if (formData.classMode === 'series' && formData.classGroups.length === 0) {
-            alert('Selecione ao menos uma turma.');
-            return;
-        }
 
-        const cover_url = formData.coverUrl || '';
-
-        const bookData = {
-            title: formData.title,
-            author: formData.author,
-            description: formData.description,
-            cover_url,
-            pdf_url: formData.pdfUrl || undefined,
-            curriculum_component: formData.curriculumComponent,
-            book_type: formData.bookType,
-            class_groups: formData.classMode === 'series' ? formData.classGroups : [],
-            level: formData.classMode === 'level' ? formData.level : null
-        };
-
+        isSavingRef.current = true;
+        setIsSaving(true);
+        setSaveError(null);
         try {
+            const payload = buildBookPayload(formData);
             if (editingBook) {
-                await updateBook(editingBook.id, bookData);
+                await updateBook(editingBook.id, payload);
             } else {
-                await addBook(bookData as any);
+                await addBook(payload);
             }
+            isSavingRef.current = false;
             closeModal();
         } catch (err) {
-            console.error('Error saving book:', err);
-        }
-    };
-
-    const handleCoverSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (file) {
-            if (!file.type.startsWith('image/')) {
-                setUploadCoverError('Apenas arquivos de imagem são permitidos');
-                return;
-            }
-            if (file.size > 5 * 1024 * 1024) {
-                setUploadCoverError('A imagem deve ter no máximo 5MB');
-                return;
-            }
-            setCoverFile(file);
-            setUploadCoverError(null);
-            setUploadCoverSuccess(false);
-        }
-    };
-
-    const handleCoverUpload = async () => {
-        if (!coverFile) return;
-
-        setIsUploadingCover(true);
-        setUploadCoverError(null);
-
-        try {
-            const result = await uploadApi.uploadImage(coverFile);
-            if (result.imageUrl) {
-                setFormData(prev => ({ ...prev, coverUrl: result.imageUrl! }));
-                setUploadCoverSuccess(true);
-                setCoverFile(null);
-            }
-        } catch (err) {
-            setUploadCoverError(err instanceof Error ? err.message : 'Erro ao fazer upload');
+            setSaveError(getErrorMessage(err));
         } finally {
-            setIsUploadingCover(false);
+            isSavingRef.current = false;
+            setIsSaving(false);
         }
-    };
-
-    const handlePdfSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (file) {
-            if (file.type !== 'application/pdf') {
-                setUploadError('Apenas arquivos PDF são permitidos');
-                return;
-            }
-            if (file.size > 50 * 1024 * 1024) {
-                setUploadError('O arquivo deve ter no máximo 50MB');
-                return;
-            }
-            setPdfFile(file);
-            setUploadError(null);
-            setUploadSuccess(false);
-        }
-    };
-
-    const handlePdfUpload = async () => {
-        if (!pdfFile) return;
-
-        setIsUploading(true);
-        setUploadError(null);
-
-        try {
-            // 1. Send the PDF
-            const result = await uploadApi.uploadPdf(pdfFile);
-            const pdfUrl = result.pdfUrl;
-
-            // 2. Generate thumbnail from the first page
-            try {
-                const coverUrl = await generateCoverFromPdf(pdfFile);
-                if (coverUrl) {
-                    setFormData(prev => ({
-                        ...prev,
-                        pdfUrl: pdfUrl || '',
-                        coverUrl: coverUrl
-                    }));
-                } else {
-                    setFormData(prev => ({ ...prev, pdfUrl: pdfUrl || '' }));
-                }
-            } catch (coverErr) {
-                console.error('Error auto-generating cover:', coverErr);
-                // Don't fail the whole process if cover fails, just set the PDF
-                setFormData(prev => ({ ...prev, pdfUrl: pdfUrl || '' }));
-            }
-
-            setUploadSuccess(true);
-            setPdfFile(null);
-        } catch (err) {
-            setUploadError(err instanceof Error ? err.message : 'Erro ao fazer upload');
-        } finally {
-            setIsUploading(false);
-        }
-    };
-
-    const generateCoverFromPdf = async (file: File): Promise<string | null> => {
-        try {
-            const { pdfjs } = await import('react-pdf');
-            if (!pdfjs.GlobalWorkerOptions.workerSrc) {
-                pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
-            }
-
-            const arrayBuffer = await file.arrayBuffer();
-            return await renderPdfPageToCover(arrayBuffer);
-        } catch (err) {
-            console.error('Failed to generate PDF cover:', err);
-            return null;
-        }
-    };
-
-
-    // Shared: render first page of PDF to cover image and upload
-    const renderPdfPageToCover = async (arrayBuffer: ArrayBuffer): Promise<string | null> => {
-        const { pdfjs } = await import('react-pdf');
-        const pdf = await pdfjs.getDocument({ data: arrayBuffer }).promise;
-        const page = await pdf.getPage(1);
-        const viewport = page.getViewport({ scale: 1.5 });
-        const canvas = document.createElement('canvas');
-        const context = canvas.getContext('2d');
-        if (!context) return null;
-
-        canvas.height = viewport.height;
-        canvas.width = viewport.width;
-        await page.render({ canvasContext: context, viewport } as any).promise;
-
-        const blob = await new Promise<Blob | null>(resolve =>
-            canvas.toBlob(resolve, 'image/jpeg', 0.8)
-        );
-        if (!blob) return null;
-
-        const coverFile = new File([blob], `cover-${Date.now()}.jpg`, { type: 'image/jpeg' });
-        const result = await uploadApi.uploadImage(coverFile);
-        return result.imageUrl || null;
     };
 
     const handleDelete = (bookId: string) => {
-        if (confirm('Tem certeza que deseja excluir este livro?')) {
+        if (confirm('Tem certeza que deseja excluir este material?')) {
             deleteBook(bookId);
         }
     };
 
+    const updateField = <K extends keyof MaterialForm>(field: K, value: MaterialForm[K]) => {
+        setFormData(prev => ({ ...prev, [field]: value }));
+    };
+
     const toggleClassGroup = (group: string) => {
-        if (formData.classGroups.includes(group)) {
-            setFormData({
-                ...formData,
-                classGroups: formData.classGroups.filter(g => g !== group)
-            });
-        } else {
-            setFormData({
-                ...formData,
-                classGroups: [...formData.classGroups, group]
-            });
-        }
+        setFormData(prev => ({
+            ...prev,
+            classGroups: prev.classGroups.includes(group)
+                ? prev.classGroups.filter(g => g !== group)
+                : [...prev.classGroups, group]
+        }));
     };
 
     return (
         <div className="manage-books animate-fadeIn">
             <PageBanner
-                title="Gerenciar Livros"
-                subtitle="Gerencie todos os livros da plataforma"
+                title="Gerenciar Materiais"
+                subtitle="Gerencie livros, vídeos e apresentações da plataforma"
                 icon={<BookOpen size={28} />}
                 actions={
                     <button className="btn" onClick={() => openModal()}>
                         <Plus size={20} />
-                        Adicionar Livro
+                        Adicionar Material
                     </button>
                 }
             />
@@ -370,6 +185,11 @@ export default function ManageBooks() {
                 {filteredBooks.map(book => {
                     const coverUrl = getImageUrl(book.cover_url);
                     const hasValidCover = book.cover_url && !book.cover_url.includes('unsplash');
+                    const contentType = getContentType(book);
+                    const contentLabels = CONTENT_LABELS[contentType];
+                    const ContentIcon = CONTENT_ICONS[contentType];
+                    const isViewable = hasContent(book);
+                    const viewLabel = isViewable ? contentLabels.action : contentLabels.missing;
 
                     return (
                         <div key={book.id} className="book-card animate-slideUp">
@@ -395,13 +215,13 @@ export default function ManageBooks() {
                                             }}
                                         />
                                         <div className="book-cover-placeholder" style={{ display: 'none' }}>
-                                            <FileText size={48} />
+                                            <ContentIcon size={48} />
                                             <span>Sem Capa</span>
                                         </div>
                                     </>
                                 ) : (
                                     <div className="book-cover-placeholder">
-                                        <FileText size={48} />
+                                        <ContentIcon size={48} />
                                         <span>Sem Capa</span>
                                     </div>
                                 )}
@@ -409,6 +229,12 @@ export default function ManageBooks() {
 
                             <div className="book-card-content">
                                 <div className="book-card-badges">
+                                    {contentType !== 'pdf' && (
+                                        <span className={`badge badge-format badge-format-${contentType}`}>
+                                            <ContentIcon size={12} />
+                                            {contentLabels.name}
+                                        </span>
+                                    )}
                                     <span className={`badge badge-${book.book_type}`}>
                                         {book.book_type === 'professor' ? 'Professor' : 'Aluno'}
                                     </span>
@@ -433,16 +259,27 @@ export default function ManageBooks() {
                                     <div className="book-card-actions">
                                         <button
                                             className="btn btn-icon"
-                                            onClick={() => book.pdf_url && navigate(`/reader/${book.id}`)}
-                                            title={book.pdf_url ? 'Visualizar' : 'Sem PDF'}
-                                            disabled={!book.pdf_url}
+                                            onClick={() => isViewable && navigate(`/reader/${book.id}`)}
+                                            title={viewLabel}
+                                            aria-label={`${viewLabel}: ${book.title}`}
+                                            disabled={!isViewable}
                                         >
                                             <Eye size={18} />
                                         </button>
-                                        <button className="btn btn-icon" onClick={() => openModal(book)} title="Editar">
+                                        <button
+                                            className="btn btn-icon"
+                                            onClick={() => openModal(book)}
+                                            title="Editar"
+                                            aria-label={`Editar ${book.title}`}
+                                        >
                                             <Edit2 size={18} />
                                         </button>
-                                        <button className="btn btn-icon danger" onClick={() => handleDelete(book.id)} title="Excluir">
+                                        <button
+                                            className="btn btn-icon danger"
+                                            onClick={() => handleDelete(book.id)}
+                                            title="Excluir"
+                                            aria-label={`Excluir ${book.title}`}
+                                        >
                                             <Trash2 size={18} />
                                         </button>
                                     </div>
@@ -456,61 +293,85 @@ export default function ManageBooks() {
             {filteredBooks.length === 0 && (
                 <div className="text-center text-muted" style={{ padding: '4rem' }}>
                     <FileText size={48} style={{ opacity: 0.2, marginBottom: '1rem' }} />
-                    <p>Nenhum livro encontrado com os filtros selecionados.</p>
+                    <p>Nenhum material encontrado com os filtros selecionados.</p>
                 </div>
             )}
 
-            {/* Add/Edit Book Modal */}
+            {/* Add/Edit Material Modal */}
             {isModalOpen && (
                 <div className="modal-overlay" onClick={closeModal}>
-                    <div className="modal modal-lg" onClick={e => e.stopPropagation()}>
+                    <div
+                        className="modal modal-lg"
+                        role="dialog"
+                        aria-modal="true"
+                        aria-labelledby="material-modal-title"
+                        onClick={e => e.stopPropagation()}
+                    >
                         <div className="modal-header">
-                            <h3>{editingBook ? 'Editar Livro' : 'Adicionar Livro'}</h3>
-                            <button className="btn btn-icon" onClick={closeModal}>
+                            <h3 id="material-modal-title">{editingBook ? 'Editar Material' : 'Adicionar Material'}</h3>
+                            <button type="button" className="btn btn-icon" onClick={closeModal} aria-label="Fechar">
                                 <X size={20} />
                             </button>
                         </div>
-                        <form onSubmit={handleSubmit}>
+                        <form onSubmit={handleSubmit} aria-describedby={saveError ? 'material-form-error' : undefined}>
                             <div className="modal-body">
+                                <div className="input-group">
+                                    <label htmlFor="material-content-type">Formato do material</label>
+                                    <select
+                                        id="material-content-type"
+                                        className="select"
+                                        value={formData.contentType}
+                                        onChange={e => media.changeContentType(e.target.value as ContentType)}
+                                        disabled={media.isAnyUploading}
+                                    >
+                                        {CONTENT_TYPES.map(type => (
+                                            <option key={type.value} value={type.value}>{type.label}</option>
+                                        ))}
+                                    </select>
+                                </div>
                                 <div className="form-grid">
                                     <div className="input-group">
-                                        <label>Título</label>
+                                        <label htmlFor="material-title">Título</label>
                                         <input
+                                            id="material-title"
                                             type="text"
                                             className="input"
                                             value={formData.title}
-                                            onChange={e => setFormData({ ...formData, title: e.target.value })}
+                                            onChange={e => updateField('title', e.target.value)}
                                             required
                                         />
                                     </div>
                                     <div className="input-group">
-                                        <label>Autor</label>
+                                        <label htmlFor="material-author">Autor</label>
                                         <input
+                                            id="material-author"
                                             type="text"
                                             className="input"
                                             value={formData.author}
-                                            onChange={e => setFormData({ ...formData, author: e.target.value })}
+                                            onChange={e => updateField('author', e.target.value)}
                                             required
                                         />
                                     </div>
                                 </div>
                                 <div className="input-group">
-                                    <label>Descrição</label>
+                                    <label htmlFor="material-description">Descrição</label>
                                     <textarea
+                                        id="material-description"
                                         className="input textarea"
                                         value={formData.description}
-                                        onChange={e => setFormData({ ...formData, description: e.target.value })}
+                                        onChange={e => updateField('description', e.target.value)}
                                         rows={3}
                                         required
                                     />
                                 </div>
                                 <div className="form-grid">
                                     <div className="input-group">
-                                        <label>Componente Curricular</label>
+                                        <label htmlFor="material-component">Componente Curricular</label>
                                         <select
+                                            id="material-component"
                                             className="select"
                                             value={formData.curriculumComponent}
-                                            onChange={e => setFormData({ ...formData, curriculumComponent: e.target.value })}
+                                            onChange={e => updateField('curriculumComponent', e.target.value)}
                                             required
                                         >
                                             {curriculumComponents.map(comp => (
@@ -519,83 +380,30 @@ export default function ManageBooks() {
                                         </select>
                                     </div>
                                     <div className="input-group">
-                                        <label>Tipo de Livro</label>
+                                        <label htmlFor="material-audience">Destinado a</label>
                                         <select
+                                            id="material-audience"
                                             className="select"
                                             value={formData.bookType}
-                                            onChange={e => setFormData({ ...formData, bookType: e.target.value as BookType })}
+                                            onChange={e => updateField('bookType', e.target.value as BookType)}
                                             required
                                         >
-                                            {BOOK_TYPES.map(type => (
-                                                <option key={type.value} value={type.value}>{type.label}</option>
+                                            {AUDIENCE_OPTIONS.map(option => (
+                                                <option key={option.value} value={option.value}>{option.label}</option>
                                             ))}
                                         </select>
                                     </div>
                                 </div>
                                 <div className="form-grid">
-                                    <div className="input-group">
-                                        <label>Capa do Livro</label>
-                                        <div className="tabs-container mb-2">
-                                            <div className="pdf-upload-container">
-                                                <input
-                                                    ref={coverInputRef}
-                                                    type="file"
-                                                    accept="image/*"
-                                                    onChange={handleCoverSelect}
-                                                    style={{ display: 'none' }}
-                                                />
-
-                                                {coverFile ? (
-                                                    <div className="pdf-selected">
-                                                        <FileText size={20} />
-                                                        <span className="pdf-filename">{coverFile.name}</span>
-                                                        <span className="pdf-size">({(coverFile.size / 1024 / 1024).toFixed(2)} MB)</span>
-                                                        <button
-                                                            type="button"
-                                                            className="btn btn-primary btn-sm"
-                                                            onClick={handleCoverUpload}
-                                                            disabled={isUploadingCover}
-                                                        >
-                                                            {isUploadingCover ? (
-                                                                <><Loader2 size={16} className="spin" /> Enviando...</>
-                                                            ) : (
-                                                                <><Upload size={16} /> Enviar</>
-                                                            )}
-                                                        </button>
-                                                    </div>
-                                                ) : (
-                                                    <div
-                                                        className="upload-area"
-                                                        onClick={() => coverInputRef.current?.click()}
-                                                    >
-                                                        <Upload size={32} />
-                                                        <span>Clique para selecionar uma capa</span>
-                                                        <span className="upload-hint">Formatos: JPG, PNG (Max 5MB)</span>
-                                                    </div>
-                                                )}
-
-                                                {uploadCoverError && (
-                                                    <p className="upload-error">{uploadCoverError}</p>
-                                                )}
-                                                {uploadCoverSuccess && (
-                                                    <p className="upload-success">Capa enviada com sucesso!</p>
-                                                )}
-
-                                                {formData.coverUrl && !coverFile && (
-                                                    <div className="mt-2" style={{ width: '100px', height: '140px', background: '#ccc', borderRadius: '4px', overflow: 'hidden' }}>
-                                                        <img src={getImageUrl(formData.coverUrl)} alt="Preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </div>
-                                    </div>
+                                    <CoverField form={formData} media={media} />
                                 </div>
                                 <div className="input-group">
-                                    <label>Classificação do Livro</label>
+                                    <label htmlFor="material-class-mode">Classificação</label>
                                     <select
+                                        id="material-class-mode"
                                         className="select"
                                         value={formData.classMode}
-                                        onChange={e => setFormData({ ...formData, classMode: e.target.value as 'series' | 'level' })}
+                                        onChange={e => updateField('classMode', e.target.value as ClassMode)}
                                     >
                                         <option value="series">Por Ano/Série</option>
                                         <option value="level">Por Nível</option>
@@ -604,8 +412,8 @@ export default function ManageBooks() {
 
                                 {formData.classMode === 'series' ? (
                                     <div className="input-group">
-                                        <label>Turmas</label>
-                                        <div className="class-grid">
+                                        <label id="material-classes-label">Turmas</label>
+                                        <div className="class-grid" role="group" aria-labelledby="material-classes-label">
                                             {seriesList.map(series => (
                                                 <label key={series.id} className={`class-checkbox ${formData.classGroups.includes(series.name) ? 'checked' : ''}`}>
                                                     <input
@@ -620,11 +428,12 @@ export default function ManageBooks() {
                                     </div>
                                 ) : (
                                     <div className="input-group">
-                                        <label>Nível</label>
+                                        <label htmlFor="material-level">Nível</label>
                                         <select
+                                            id="material-level"
                                             className="select"
                                             value={formData.level}
-                                            onChange={e => setFormData({ ...formData, level: e.target.value })}
+                                            onChange={e => updateField('level', e.target.value)}
                                         >
                                             <option value="">Selecione um nível</option>
                                             {levelsList.map(lvl => (
@@ -633,73 +442,20 @@ export default function ManageBooks() {
                                         </select>
                                     </div>
                                 )}
-                                <div className="input-group">
-                                    <label>Arquivo PDF</label>
-                                    <div className="pdf-upload-container">
-                                        <input
-                                            ref={fileInputRef}
-                                            type="file"
-                                            accept=".pdf,application/pdf"
-                                            onChange={handlePdfSelect}
-                                            style={{ display: 'none' }}
-                                        />
 
-                                        {formData.pdfUrl && !pdfFile ? (
-                                            <div className="pdf-uploaded">
-                                                <Check size={20} className="text-success" />
-                                                <span>PDF anexado</span>
-                                                <button
-                                                    type="button"
-                                                    className="btn btn-sm"
-                                                    onClick={() => setFormData({ ...formData, pdfUrl: '' })}
-                                                >
-                                                    Remover
-                                                </button>
-                                            </div>
-                                        ) : pdfFile ? (
-                                            <div className="pdf-selected">
-                                                <FileText size={20} />
-                                                <span className="pdf-filename">{pdfFile.name}</span>
-                                                <span className="pdf-size">({(pdfFile.size / 1024 / 1024).toFixed(2)} MB)</span>
-                                                <button
-                                                    type="button"
-                                                    className="btn btn-primary btn-sm"
-                                                    onClick={handlePdfUpload}
-                                                    disabled={isUploading}
-                                                >
-                                                    {isUploading ? (
-                                                        <><Loader2 size={16} className="spin" /> Enviando...</>
-                                                    ) : (
-                                                        <><Upload size={16} /> Enviar</>
-                                                    )}
-                                                </button>
-                                            </div>
-                                        ) : (
-                                            <div
-                                                className="upload-area"
-                                                onClick={() => fileInputRef.current?.click()}
-                                            >
-                                                <Upload size={32} />
-                                                <span>Clique para selecionar um PDF</span>
-                                                <span className="upload-hint">Máximo 50MB</span>
-                                            </div>
-                                        )}
-
-                                        {uploadError && (
-                                            <p className="upload-error">{uploadError}</p>
-                                        )}
-                                        {uploadSuccess && (
-                                            <p className="upload-success">PDF enviado com sucesso!</p>
-                                        )}
-                                    </div>
-                                </div>
+                                <MaterialMediaField form={formData} media={media} />
                             </div>
                             <div className="modal-footer">
-                                <button type="button" className="btn btn-secondary" onClick={closeModal}>
+                                {saveError && (
+                                    <p id="material-form-error" className="form-error" role="alert">{saveError}</p>
+                                )}
+                                <button type="button" className="btn btn-secondary" onClick={closeModal} disabled={isSaving}>
                                     Cancelar
                                 </button>
-                                <button type="submit" className="btn btn-primary">
-                                    {editingBook ? 'Salvar' : 'Adicionar'}
+                                <button type="submit" className="btn btn-primary" disabled={media.isAnyUploading || isSaving}>
+                                    {isSaving
+                                        ? <><Loader2 size={16} className="spin" aria-hidden="true" /> Salvando...</>
+                                        : editingBook ? 'Salvar' : 'Adicionar'}
                                 </button>
                             </div>
                         </form>

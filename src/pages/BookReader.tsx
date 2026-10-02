@@ -17,7 +17,12 @@ const DEFAULT_ZOOM_INDEX = 2;
 // on digital whiteboards, projectors and large screens
 const PDF_DEVICE_PIXEL_RATIO = Math.max(window.devicePixelRatio || 1, 3);
 
-export default function BookReader() {
+interface BookReaderProps {
+    // Already loaded by ContentViewer; when present the reader skips its own fetch
+    book?: Book;
+}
+
+export default function BookReader({ book: preloadedBook }: BookReaderProps = {}) {
     const { bookId } = useParams<{ bookId: string }>();
     const navigate = useNavigate();
     const [book, setBook] = useState<Book | null>(null);
@@ -58,6 +63,14 @@ export default function BookReader() {
     }, [leftPage, rightPage, numPages]);
 
     useEffect(() => {
+        // A preloaded book goes through the same loading -> loaded transition as a fetched one (the first
+        // render shows the loading state), so page sizing, zoom and the opening animation behave as before
+        if (preloadedBook) {
+            setBook(preloadedBook);
+            setLoading(false);
+            return;
+        }
+
         const loadBook = async () => {
             if (!bookId) {
                 setError('ID do livro não fornecido');
@@ -77,7 +90,7 @@ export default function BookReader() {
         };
 
         loadBook();
-    }, [bookId]);
+    }, [bookId, preloadedBook]);
 
     // Trigger book opening animation
     useEffect(() => {

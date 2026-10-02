@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
-import { booksApi, Book } from '../services/api';
+import { booksApi, Book, ContentType } from '../services/api';
+import { getContentType } from '../utils/media';
 import { useAuth } from './AuthContext';
 
 // Re-export types for backwards compatibility
@@ -39,6 +40,7 @@ export interface BookFilters {
     classGroup?: ClassGroup | 'all';
     seriesId?: string | 'all';
     bookType?: 'student' | 'professor' | 'all';
+    contentType?: ContentType | 'all';
 }
 
 interface BooksContextType {
@@ -186,6 +188,11 @@ export function BooksProvider({ children }: { children: ReactNode }) {
             // Book type (profile) filter
             if (filters.bookType && filters.bookType !== 'all') {
                 if (book.book_type !== filters.bookType) return false;
+            }
+
+            // Material format filter
+            if (filters.contentType && filters.contentType !== 'all') {
+                if (getContentType(book) !== filters.contentType) return false;
             }
 
             return true;

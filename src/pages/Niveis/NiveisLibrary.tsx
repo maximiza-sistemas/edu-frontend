@@ -1,9 +1,13 @@
 import { useBooks } from '../../contexts/BooksContext';
 import { useNavigate } from 'react-router-dom';
-import { BookOpen, Search, FileText, Eye, Library } from 'lucide-react';
+import { BookOpen, Search, FileText, Library } from 'lucide-react';
 import PageBanner from '../../components/PageBanner';
+import ContentTypeIcon from '../../components/ContentTypeIcon';
 import { useState, useEffect } from 'react';
 import { uploadApi, levelsApi, Level } from '../../services/api';
+import type { ContentType } from '../../services/api';
+import { CONTENT_TYPES } from '../../types';
+import { CONTENT_LABELS, getContentType, hasContent } from '../../utils/media';
 import '../Student/MyLibrary.css';
 
 const getImageUrl = (url: string) => {
@@ -17,6 +21,7 @@ export default function NiveisLibrary() {
     const [search, setSearch] = useState('');
     const [levelFilter, setLevelFilter] = useState<string>('all');
     const [typeFilter, setTypeFilter] = useState<'all' | 'student' | 'professor'>('all');
+    const [formatFilter, setFormatFilter] = useState<'all' | ContentType>('all');
     const [levels, setLevels] = useState<Level[]>([]);
 
     useEffect(() => {
@@ -26,6 +31,7 @@ export default function NiveisLibrary() {
     const filteredBooks = levelBooks.filter(book => {
         if (levelFilter !== 'all' && book.level !== levelFilter) return false;
         if (typeFilter !== 'all' && book.book_type !== typeFilter) return false;
+        if (formatFilter !== 'all' && getContentType(book) !== formatFilter) return false;
         if (search) {
             const s = search.toLowerCase();
             const matches =
@@ -49,7 +55,7 @@ export default function NiveisLibrary() {
         <div className="my-library animate-fadeIn">
             <PageBanner
                 title="Biblioteca por Níveis"
-                subtitle="Acesse os livros organizados por nível"
+                subtitle="Acesse os materiais organizados por nível"
                 icon={<Library size={28} />}
             />
 
@@ -57,7 +63,7 @@ export default function NiveisLibrary() {
                 <Search size={18} />
                 <input
                     type="text"
-                    placeholder="Buscar livros..."
+                    placeholder="Buscar materiais..."
                     value={search}
                     onChange={e => setSearch(e.target.value)}
                     className="input"
@@ -73,19 +79,31 @@ export default function NiveisLibrary() {
                     <option value="student">Livro do Aluno</option>
                     <option value="professor">Livro do Professor</option>
                 </select>
+                <select className="select" value={formatFilter} onChange={e => setFormatFilter(e.target.value as 'all' | ContentType)}>
+                    <option value="all">Todos os formatos</option>
+                    {CONTENT_TYPES.map(type => (
+                        <option key={type.value} value={type.value}>{type.label}</option>
+                    ))}
+                </select>
             </div>
 
             <div className="library-grid">
                 {filteredBooks.map(book => {
                     const coverUrl = getImageUrl(book.cover_url);
                     const hasValidCover = book.cover_url && !book.cover_url.includes('unsplash');
+                    const contentType = getContentType(book);
+                    const labels = CONTENT_LABELS[contentType];
+                    const isAvailable = hasContent(book);
+                    const openViewer = () => {
+                        if (isAvailable) navigate(`/reader/${book.id}`);
+                    };
 
                     return (
                         <div
                             key={book.id}
                             className="book-card animate-slideUp"
-                            onClick={() => book.pdf_url && navigate(`/reader/${book.id}`)}
-                            style={{ cursor: book.pdf_url ? 'pointer' : 'default' }}
+                            onClick={openViewer}
+                            style={{ cursor: isAvailable ? 'pointer' : 'default' }}
                         >
                             <div className="book-card-cover-container">
                                 {hasValidCover ? (
@@ -95,6 +113,7 @@ export default function NiveisLibrary() {
                                             src={coverUrl}
                                             alt={book.title}
                                             className="book-card-cover"
+                                            referrerPolicy="no-referrer"
                                             style={{ position: 'relative', zIndex: 1 }}
                                             onError={(e) => {
                                                 const target = e.target as HTMLImageElement;
@@ -113,6 +132,12 @@ export default function NiveisLibrary() {
                                         <FileText size={48} />
                                         <span>Sem Capa</span>
                                     </div>
+                                )}
+                                {contentType !== 'pdf' && (
+                                    <span className={`book-card-format book-card-format-${contentType}`}>
+                                        <ContentTypeIcon type={contentType} size={14} />
+                                        {labels.name}
+                                    </span>
                                 )}
                             </div>
 
@@ -135,12 +160,12 @@ export default function NiveisLibrary() {
                                         className="btn btn-read"
                                         onClick={(e) => {
                                             e.stopPropagation();
-                                            if (book.pdf_url) navigate(`/reader/${book.id}`);
+                                            openViewer();
                                         }}
-                                        disabled={!book.pdf_url}
+                                        disabled={!isAvailable}
                                     >
-                                        <Eye size={18} />
-                                        <span>{book.pdf_url ? 'Ler Agora' : 'Sem PDF'}</span>
+                                        <ContentTypeIcon type={contentType} size={18} />
+                                        <span>{isAvailable ? labels.action : labels.missing}</span>
                                     </button>
                                 </div>
                             </div>
@@ -152,11 +177,11 @@ export default function NiveisLibrary() {
             {filteredBooks.length === 0 && (
                 <div className="empty-state">
                     <BookOpen size={64} />
-                    <h3>Nenhum livro encontrado</h3>
+                    <h3>Nenhum material encontrado</h3>
                     <p>
                         {levelBooks.length === 0
-                            ? 'Não há livros por nível disponíveis ainda.'
-                            : 'Nenhum livro corresponde aos filtros.'}
+                            ? 'Não há materiais por nível disponíveis ainda.'
+                            : 'Nenhum material corresponde aos filtros.'}
                     </p>
                 </div>
             )}

@@ -17,7 +17,7 @@ export default function ProfessorDashboard() {
 
     const stats = [
         {
-            label: 'Total de Livros',
+            label: 'Total de Materiais',
             value: books.length,
             icon: <BookOpen size={24} />,
             color: 'var(--color-professor)',
@@ -67,7 +67,7 @@ export default function ProfessorDashboard() {
             <div className="dashboard-grid">
                 <div className="dashboard-section">
                     <div className="section-header">
-                        <h2>Livros Disponíveis</h2>
+                        <h2>Materiais Disponíveis</h2>
                         <Link to="/professor/my-books" className="section-link">Ver todos</Link>
                     </div>
                     <div className="books-list">
@@ -81,7 +81,7 @@ export default function ProfessorDashboard() {
                                 />
                             ))
                         ) : (
-                            <p className="empty-message">Nenhum livro disponível ainda.</p>
+                            <p className="empty-message">Nenhum material disponível ainda.</p>
                         )}
                     </div>
                 </div>

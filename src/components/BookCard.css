@@ -118,6 +118,33 @@
     font-weight: 500;
 }
 
+/* Format badge for videos and presentations */
+.book-format {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-weight: 600;
+    color: var(--color-text-primary);
+}
+
+.book-format-video {
+    background: rgba(0, 180, 216, 0.15);
+}
+
+.book-format-video svg {
+    color: var(--color-accent-tertiary);
+}
+
+.book-format-pptx {
+    background: rgba(217, 119, 6, 0.15);
+}
+
+.book-format-pptx svg {
+    color: var(--color-warning);
+}
+
 .book-arrow {
     display: none;
 }

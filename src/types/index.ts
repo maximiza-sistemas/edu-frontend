@@ -1,5 +1,5 @@
 // Re-export types from API service for backwards compatibility
-export type { User, Book, BookAssignment } from '../services/api';
+export type { User, Book, BookAssignment, ContentType } from '../services/api';
 
 export type UserRole = 'admin' | 'professor' | 'student' | 'niveis';
 
@@ -8,6 +8,13 @@ export type BookType = 'student' | 'professor';
 export const BOOK_TYPES: { value: BookType; label: string }[] = [
     { value: 'student', label: 'Livro do Aluno' },
     { value: 'professor', label: 'Livro do Professor' }
+];
+
+// Formatos de material
+export const CONTENT_TYPES: { value: import('../services/api').ContentType; label: string }[] = [
+    { value: 'pdf', label: 'Livro (PDF)' },
+    { value: 'video', label: 'Vídeo' },
+    { value: 'pptx', label: 'Apresentação (PPTX)' }
 ];
 
 // Componentes Curriculares
@@ -45,4 +52,5 @@ export interface BookFilters {
     classGroup?: ClassGroup | 'all';
     seriesId?: string | 'all';
     bookType?: BookType | 'all';
+    contentType?: import('../services/api').ContentType | 'all';
 }
