@@ -16,6 +16,9 @@ const DEFAULT_ZOOM_INDEX = 2;
 // High-DPI rendering: force minimum 3x resolution for crisp quality
 // on digital whiteboards, projectors and large screens
 const PDF_DEVICE_PIXEL_RATIO = Math.max(window.devicePixelRatio || 1, 3);
+// Books can have hundreds of MB: fetch only the pages being read, in 1MB ranges, instead of downloading the
+// whole file (pdf.js falls back to a full download when the server does not support range requests)
+const PDF_OPTIONS = { disableAutoFetch: true, disableStream: true, rangeChunkSize: 1024 * 1024 };
 
 interface BookReaderProps {
     // Already loaded by ContentViewer; when present the reader skips its own fetch
@@ -309,6 +312,7 @@ export default function BookReader({ book: preloadedBook }: BookReaderProps = {}
                     <div className={`book-spread ${isFlipping ? `flipping-${flipDirection}` : ''} ${isCoverPage ? 'single-page' : ''}`}>
                         <Document
                             file={pdfUrl}
+                            options={PDF_OPTIONS}
                             onLoadSuccess={onDocumentLoadSuccess}
                             loading={
                                 <div className="page-loading">

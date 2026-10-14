@@ -383,7 +383,7 @@ export interface UploadOptions {
 
 export { isAbortError, UPLOAD_CANCELLED_MESSAGE };
 
-// Videos and presentations can be hundreds of MB: they are sent in small chunks, each one finishing well
+// Videos, presentations and PDFs can be hundreds of MB: they are sent in small chunks, each one finishing well
 // within the reverse proxy's request timeout (see chunkedUpload.ts)
 const chunkedUploadConfig: ChunkedUploadConfig = {
     baseUrl: API_BASE_URL,
@@ -391,7 +391,7 @@ const chunkedUploadConfig: ChunkedUploadConfig = {
     onUnauthorized: removeToken
 };
 
-// Small files (PDF, images) are sent with fetch; the signal cancels the request
+// Small files (images) are sent with fetch; the signal cancels the request
 async function uploadWithFetch(
     endpoint: string,
     fieldName: string,
@@ -430,8 +430,8 @@ export const uploadApi = {
         return uploadFileInChunks<UploadResponse>(chunkedUploadConfig, { ...options, kind: 'presentation', file, fallbackError: 'Erro ao fazer upload da apresentação' });
     },
 
-    uploadPdf(file: File, signal?: AbortSignal): Promise<UploadResponse> {
-        return uploadWithFetch('/upload/pdf', 'pdf', file, 'Erro ao fazer upload do PDF', signal);
+    uploadPdf(file: File, options?: UploadOptions): Promise<UploadResponse> {
+        return uploadFileInChunks<UploadResponse>(chunkedUploadConfig, { ...options, kind: 'pdf', file, fallbackError: 'Erro ao fazer upload do PDF' });
     },
 
     uploadImage(file: Blob | File, signal?: AbortSignal): Promise<UploadResponse> {

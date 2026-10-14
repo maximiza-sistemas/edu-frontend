@@ -2,9 +2,11 @@ import { useState, useEffect, useRef } from 'react';
 import { ArrowLeft, AlertTriangle, Download, Loader2, Maximize, Minimize, Presentation } from 'lucide-react';
 import { uploadApi } from '../../services/api';
 import type { Book } from '../../services/api';
-import { MAX_PRESENTATION_SIZE_MB, getOfficeViewerUrl, isPubliclyReachableUrl } from '../../utils/media';
+import { OFFICE_VIEWER_MAX_MB, getOfficeViewerUrl, isPubliclyReachableUrl } from '../../utils/media';
 import '../../pages/BookReader.css';
 import './MediaViewer.css';
+
+const BYTES_PER_MB = 1024 * 1024;
 
 interface PresentationViewerProps {
     book: Book;
@@ -22,6 +24,39 @@ function resolveFileUrl(mediaUrl: string | null | undefined): string | null {
     }
 }
 
+/**
+ * Size of the file in bytes from a HEAD request: undefined while checking, null when unknown.
+ * Unknown sizes still go to the online viewer, which then shows its own message if it cannot open them.
+ */
+function useFileSize(fileUrl: string | null): number | null | undefined {
+    const [size, setSize] = useState<{ url: string; bytes: number | null } | null>(null);
+
+    useEffect(() => {
+        if (!fileUrl) return undefined;
+        const controller = new AbortController();
+        fetch(fileUrl, { method: 'HEAD', signal: controller.signal })
+            .then(response => {
+                const bytes = Number(response.headers.get('Content-Length'));
+                setSize({ url: fileUrl, bytes: response.ok && bytes > 0 ? bytes : null });
+            })
+            .catch(() => {
+                if (!controller.signal.aborted) setSize({ url: fileUrl, bytes: null });
+            });
+        return () => controller.abort();
+    }, [fileUrl]);
+
+    return size?.url === fileUrl ? size.bytes : undefined;
+}
+
+function DownloadButton({ fileUrl }: { fileUrl: string }) {
+    return (
+        <a className="btn btn-primary" href={fileUrl} download target="_blank" rel="noopener noreferrer">
+            <Download size={18} />
+            Baixar apresentação
+        </a>
+    );
+}
+
 export default function PresentationViewer({ book, onBack }: PresentationViewerProps) {
     const viewerRef = useRef<HTMLDivElement>(null);
     const [isFullscreen, setIsFullscreen] = useState(false);
@@ -34,7 +69,10 @@ export default function PresentationViewer({ book, onBack }: PresentationViewerP
     }, []);
 
     const fileUrl = resolveFileUrl(book.media_url);
-    const canUseOnlineViewer = fileUrl !== null && isPubliclyReachableUrl(fileUrl);
+    const isPublic = fileUrl !== null && isPubliclyReachableUrl(fileUrl);
+    const fileSize = useFileSize(isPublic ? fileUrl : null);
+    const isTooBigForViewer = !!fileSize && fileSize > OFFICE_VIEWER_MAX_MB * BYTES_PER_MB;
+    const canUseOnlineViewer = isPublic && fileSize !== undefined && !isTooBigForViewer;
     const canToggleFullscreen = canUseOnlineViewer && document.fullscreenEnabled;
 
     const toggleFullscreen = () => {
@@ -55,6 +93,30 @@ export default function PresentationViewer({ book, onBack }: PresentationViewerP
             );
         }
 
+        if (isPublic && fileSize === undefined) {
+            return (
+                <div className="media-notice">
+                    <Loader2 size={32} className="spin" />
+                    <p>Carregando apresentação...</p>
+                </div>
+            );
+        }
+
+        if (isTooBigForViewer) {
+            return (
+                <div className="media-notice">
+                    <Presentation size={40} />
+                    <h2>Apresentação grande demais para visualizar online</h2>
+                    <p>
+                        Esta apresentação tem {(fileSize / BYTES_PER_MB).toFixed(0)} MB, e o visualizador online do
+                        Microsoft Office abre arquivos de até {OFFICE_VIEWER_MAX_MB} MB. Baixe o arquivo para abri-lo
+                        no PowerPoint ou em outro programa compatível.
+                    </p>
+                    <DownloadButton fileUrl={fileUrl} />
+                </div>
+            );
+        }
+
         if (!canUseOnlineViewer) {
             return (
                 <div className="media-notice">
@@ -65,16 +127,7 @@ export default function PresentationViewer({ book, onBack }: PresentationViewerP
                         está publicada na internet. Neste ambiente, baixe o arquivo para abri-lo no PowerPoint
                         ou em outro programa compatível.
                     </p>
-                    <a
-                        className="btn btn-primary"
-                        href={fileUrl}
-                        download
-                        target="_blank"
-                        rel="noopener noreferrer"
-                    >
-                        <Download size={18} />
-                        Baixar apresentação
-                    </a>
+                    <DownloadButton fileUrl={fileUrl} />
                 </div>
             );
         }
@@ -96,7 +149,7 @@ export default function PresentationViewer({ book, onBack }: PresentationViewerP
                     />
                 </div>
                 <p className="presentation-hint">
-                    O visualizador online do Microsoft Office abre apresentações de até {MAX_PRESENTATION_SIZE_MB} MB.
+                    O visualizador online do Microsoft Office abre apresentações de até {OFFICE_VIEWER_MAX_MB} MB.
                 </p>
             </div>
         );

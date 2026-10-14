@@ -20,7 +20,7 @@ export const MIN_CHUNK_SIZE = 1024 * 1024;
 // Consecutive 409 resyncs without progress before giving up (protects against a server/client loop)
 const MAX_RESYNCS = 5;
 
-export type ChunkedUploadKind = 'video' | 'presentation';
+export type ChunkedUploadKind = 'video' | 'presentation' | 'pdf';
 export type FailureAction = 'retry' | 'resync' | 'fail';
 
 export interface ChunkedUploadConfig {

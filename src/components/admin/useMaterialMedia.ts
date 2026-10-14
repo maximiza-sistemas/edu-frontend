@@ -83,7 +83,7 @@ export function useMaterialMedia(form: MaterialForm, setForm: Dispatch<SetStateA
     }, [resetPdf, resetCover, resetMedia]);
 
     const uploadPdf = () => pdf.start(async (file, context) => {
-        const pdfUrl = requireUrl((await uploadApi.uploadPdf(file, context.signal)).pdfUrl);
+        const pdfUrl = requireUrl((await uploadApi.uploadPdf(file, { signal: context.signal, onProgress: context.onProgress })).pdfUrl);
         // A new PDF also replaces a stored cover, which usually came from the previous PDF
         const coverUrl = canReplaceCover(form.coverSource, true)
             ? await generateCoverFromPdf(file, context.signal)

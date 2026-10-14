@@ -1,5 +1,6 @@
 import {
     MAX_PRESENTATION_SIZE_MB,
+    OFFICE_VIEWER_MAX_MB,
     MAX_VIDEO_SIZE_MB,
     isAllowedPresentationFile,
     isAllowedVideoFile,
@@ -8,8 +9,8 @@ import {
 
 export const BYTES_PER_MB = 1024 * 1024;
 
-// Backend MAX_FILE_SIZE_MB for PDFs (uploadController.ts)
-export const MAX_PDF_SIZE_MB = 50;
+// Backend MAX_PDF_SIZE_MB (uploadController.ts); PDFs are sent in chunks
+export const MAX_PDF_SIZE_MB = 400;
 // Stricter than the backend image limit on purpose: covers are shown in grids
 export const MAX_COVER_SIZE_MB = 5;
 // books.media_url is VARCHAR(1024); the backend rejects longer links
@@ -17,8 +18,8 @@ export const MAX_VIDEO_LINK_LENGTH = 1024;
 
 export const INVALID_VIDEO_LINK_MESSAGE = 'Informe um link válido do YouTube ou Vimeo.';
 export const VIDEO_LINK_TOO_LONG_MESSAGE = `O link do vídeo deve ter no máximo ${MAX_VIDEO_LINK_LENGTH} caracteres. Copie o endereço do vídeo sem os parâmetros extras.`;
-export const PRESENTATION_LIMIT_HINT = `O limite de ${MAX_PRESENTATION_SIZE_MB}MB vem do visualizador online do PowerPoint. `
-    + 'Se o arquivo for maior, use "Compactar Imagens" no PowerPoint e salve novamente.';
+export const PRESENTATION_LIMIT_HINT = `O visualizador online do PowerPoint abre arquivos de até ${OFFICE_VIEWER_MAX_MB}MB; `
+    + 'acima disso, os slides ficam disponíveis só para download. Para reduzir o arquivo, use "Compactar Imagens" no PowerPoint.';
 
 /** Returns an error message for a file that cannot be uploaded, or null when it is accepted. */
 export type FileValidator = (file: File) => string | null;
@@ -57,9 +58,7 @@ export const validateVideoFile: FileValidator = file => {
 
 export const validatePresentationFile: FileValidator = file => {
     if (!isAllowedPresentationFile(file)) return 'Apenas apresentações PowerPoint (.pptx ou .ppt) são permitidas.';
-    if (exceedsUploadLimit(file, MAX_PRESENTATION_SIZE_MB)) {
-        return `${sizeLimitMessage(MAX_PRESENTATION_SIZE_MB)} ${PRESENTATION_LIMIT_HINT}`;
-    }
+    if (exceedsUploadLimit(file, MAX_PRESENTATION_SIZE_MB)) return sizeLimitMessage(MAX_PRESENTATION_SIZE_MB);
     return null;
 };
 

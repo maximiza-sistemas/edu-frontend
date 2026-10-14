@@ -1,10 +1,11 @@
 import { uploadApi } from '../services/api';
 import type { Book, ContentType } from '../services/api';
 
-// Upload limits; must match the backend multer limits in uploadController.ts
+// Upload limits; must match the backend limits in uploadController.ts
 export const MAX_VIDEO_SIZE_MB = 500;
-// The Microsoft Office Online viewer refuses PowerPoint files larger than 10 MB
-export const MAX_PRESENTATION_SIZE_MB = 10;
+export const MAX_PRESENTATION_SIZE_MB = 400;
+// The Microsoft Office Online viewer refuses PowerPoint files larger than 10 MB; bigger ones are downloaded
+export const OFFICE_VIEWER_MAX_MB = 10;
 
 export const VIDEO_EXTENSIONS = ['.mp4', '.webm', '.ogv', '.m4v'];
 export const VIDEO_MIME_TYPES = ['video/mp4', 'video/webm', 'video/ogg', 'video/x-m4v'];

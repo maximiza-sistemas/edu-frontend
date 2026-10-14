@@ -49,7 +49,7 @@ describe('file validators', () => {
     it('accepts a PDF under the limit and rejects other types or the exact limit', () => {
         expect(validatePdfFile(fakeFile('a.pdf', 'application/pdf', 1024))).toBeNull();
         expect(validatePdfFile(fakeFile('a.txt', 'text/plain', 1024))).toMatch(/PDF/);
-        expect(validatePdfFile(fakeFile('a.pdf', 'application/pdf', MAX_PDF_SIZE_MB * BYTES_PER_MB))).toMatch(/menos de 50MB/);
+        expect(validatePdfFile(fakeFile('a.pdf', 'application/pdf', MAX_PDF_SIZE_MB * BYTES_PER_MB))).toMatch(/menos de 400MB/);
     });
 
     it('accepts images under the cover limit only', () => {
@@ -64,12 +64,12 @@ describe('file validators', () => {
         expect(validateVideoFile(fakeFile('v.mp4', 'video/mp4', MAX_VIDEO_SIZE_MB * BYTES_PER_MB))).toMatch(`${MAX_VIDEO_SIZE_MB}MB`);
     });
 
-    it('explains the PowerPoint viewer limit when a presentation is too big', () => {
+    it('accepts presentations above the online viewer limit, up to the upload limit', () => {
         expect(validatePresentationFile(fakeFile('s.pptx', PPTX_MIME, 1024))).toBeNull();
+        expect(validatePresentationFile(fakeFile('s.pptx', PPTX_MIME, 50 * BYTES_PER_MB))).toBeNull();
         expect(validatePresentationFile(fakeFile('s.key', 'application/octet-stream', 1024))).toMatch(/PowerPoint/);
         const tooBig = validatePresentationFile(fakeFile('s.pptx', PPTX_MIME, MAX_PRESENTATION_SIZE_MB * BYTES_PER_MB));
         expect(tooBig).toMatch(`${MAX_PRESENTATION_SIZE_MB}MB`);
-        expect(tooBig).toMatch(/Compactar Imagens/);
     });
 });
 

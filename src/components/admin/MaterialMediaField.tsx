@@ -39,6 +39,7 @@ function PdfField({ form, media }: MaterialMediaFieldProps) {
                 onUpload={media.uploadPdf}
                 attachedText={form.pdfUrl ? 'PDF anexado' : undefined}
                 onRemove={media.removePdf}
+                showProgress
             />
         </div>
     );

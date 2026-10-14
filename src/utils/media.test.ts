@@ -51,7 +51,7 @@ function makeFile(name: string, type: string): File {
 describe('upload constraints', () => {
     it('matches the backend size limits', () => {
         expect(MAX_VIDEO_SIZE_MB).toBe(500);
-        expect(MAX_PRESENTATION_SIZE_MB).toBe(10);
+        expect(MAX_PRESENTATION_SIZE_MB).toBe(400);
     });
 
     it('lists every allowed extension and MIME type in the accept strings', () => {
