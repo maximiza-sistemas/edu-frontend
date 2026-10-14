@@ -1,12 +1,14 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useBooks } from '../../contexts/BooksContext';
-import { Plus, Edit2, Trash2, X, FileText, Eye, BookOpen, PlayCircle, Presentation, Loader2 } from 'lucide-react';
+import { Plus, Edit2, Trash2, X, FileText, Eye, PlayCircle, Presentation, Loader2 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import PageBanner from '../../components/PageBanner';
 import { Book, BookFilters as BookFiltersType, BookType, CONTENT_TYPES, ContentType } from '../../types';
 import BookFilters from '../../components/BookFilters';
-import { EMPTY_FILTERS } from '../../utils/bookFilters';
+import { applyBookFilters, EMPTY_FILTERS } from '../../utils/bookFilters';
+import { booksOfSection } from '../../utils/materialSections';
+import type { MaterialSection } from '../../utils/materialSections';
 import { uploadApi, curriculumApi, seriesApi, levelsApi, CurriculumComponent, Series, Level } from '../../services/api';
 import { CONTENT_LABELS, getContentType, hasContent } from '../../utils/media';
 import CoverField from '../../components/admin/CoverField';
@@ -36,9 +38,9 @@ const CONTENT_ICONS: Record<ContentType, LucideIcon> = {
 
 const getErrorMessage = (err: unknown) => (err instanceof Error && err.message ? err.message : 'Erro ao salvar o material.');
 
-export default function ManageBooks() {
+export default function ManageBooks({ section }: { section: MaterialSection }) {
     const navigate = useNavigate();
-    const { books, addBook, updateBook, deleteBook, filterBooks } = useBooks();
+    const { books, addBook, updateBook, deleteBook } = useBooks();
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingBook, setEditingBook] = useState<Book | null>(null);
     const [filters, setFilters] = useState<BookFiltersType>(EMPTY_FILTERS);
@@ -97,12 +99,14 @@ export default function ManageBooks() {
         }
     };
 
-    const filteredBooks = filterBooks(filters);
+    const sectionBooks = useMemo(() => booksOfSection(books, section), [books, section]);
+    const filteredBooks = applyBookFilters(sectionBooks, filters);
 
     const openModal = (book?: Book) => {
         media.resetAll();
         setEditingBook(book ?? null);
-        setFormData(book ? formFromBook(book) : EMPTY_FORM);
+        // A new material starts with the type of the page it was created from
+        setFormData(book ? formFromBook(book) : { ...EMPTY_FORM, contentType: section.type });
         setSaveError(null);
         setIsModalOpen(true);
     };
@@ -166,25 +170,27 @@ export default function ManageBooks() {
         }));
     };
 
+    const ContentIconForSection = CONTENT_ICONS[section.type];
+
     return (
         <div className="manage-books animate-fadeIn">
             <PageBanner
-                title="Gerenciar Materiais"
-                subtitle="Gerencie livros, vídeos e apresentações da plataforma"
-                icon={<BookOpen size={28} />}
+                title={section.label}
+                subtitle={`Gerencie os ${section.label.toLowerCase()} da plataforma`}
+                icon={<ContentIconForSection size={28} />}
                 actions={
                     <button className="btn" onClick={() => openModal()}>
                         <Plus size={20} />
-                        Adicionar Material
+                        Adicionar {section.singular}
                     </button>
                 }
             />
 
             <BookFilters
-                books={books}
+                books={sectionBooks}
                 value={filters}
                 onChange={setFilters}
-                fields={['curriculumComponent', 'seriesId', 'level', 'bookType', 'contentType', 'availability', 'sort']}
+                fields={['curriculumComponent', 'seriesId', 'level', 'bookType', 'sort']}
                 resultCount={filteredBooks.length}
             />
 

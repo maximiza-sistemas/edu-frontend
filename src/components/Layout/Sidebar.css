@@ -182,3 +182,63 @@
 .sidebar-nav::-webkit-scrollbar-thumb:hover {
     background: rgba(255, 255, 255, 0.35);
 }
+
+/* "Materiais" group with one page per material type */
+.nav-group {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xs);
+}
+
+.nav-group-toggle {
+    width: 100%;
+    background: transparent;
+    border: none;
+    font-family: var(--font-family);
+    text-align: left;
+    cursor: pointer;
+}
+
+.nav-group-toggle.active-parent {
+    color: #ffffff;
+}
+
+.nav-group-toggle .nav-chevron {
+    transition: transform var(--transition-base), opacity var(--transition-base);
+    transform: rotate(-90deg);
+}
+
+.nav-group-toggle .nav-chevron.open {
+    transform: rotate(0deg);
+}
+
+.nav-submenu {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    margin-left: calc(var(--spacing-lg) + 9px);
+    padding-left: var(--spacing-sm);
+    border-left: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.nav-subitem {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-sm) var(--spacing-md);
+    color: rgba(255, 255, 255, 0.7);
+    border-radius: var(--radius-md, 8px);
+    font-size: var(--font-size-sm);
+    text-decoration: none;
+    transition: all var(--transition-base);
+}
+
+.nav-subitem:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: #ffffff;
+}
+
+.nav-subitem.active {
+    background: rgba(0, 180, 216, 0.2);
+    color: #00b4d8;
+}

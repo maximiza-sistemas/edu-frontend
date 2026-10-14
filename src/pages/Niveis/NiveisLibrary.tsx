@@ -1,18 +1,22 @@
 import { useBooks } from '../../contexts/BooksContext';
-import { BookOpen, Library } from 'lucide-react';
+import { BookOpen } from 'lucide-react';
+import ContentTypeIcon from '../../components/ContentTypeIcon';
+import { booksOfSection } from '../../utils/materialSections';
+import type { MaterialSection } from '../../utils/materialSections';
 import PageBanner from '../../components/PageBanner';
 import LibraryBookCard from '../../components/LibraryBookCard';
 import BookFilters from '../../components/BookFilters';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { applyBookFilters, EMPTY_FILTERS } from '../../utils/bookFilters';
 import type { BookFilters as BookFiltersType } from '../../utils/bookFilters';
 import '../Student/MyLibrary.css';
 
-export default function NiveisLibrary() {
+export default function NiveisLibrary({ section }: { section: MaterialSection }) {
     const { levelBooks, isLoading } = useBooks();
     const [filters, setFilters] = useState<BookFiltersType>(EMPTY_FILTERS);
 
-    const filteredBooks = applyBookFilters(levelBooks, filters);
+    const sectionBooks = useMemo(() => booksOfSection(levelBooks, section), [levelBooks, section]);
+    const filteredBooks = applyBookFilters(sectionBooks, filters);
 
     if (isLoading) {
         return (
@@ -25,16 +29,16 @@ export default function NiveisLibrary() {
     return (
         <div className="my-library animate-fadeIn">
             <PageBanner
-                title="Biblioteca por Níveis"
-                subtitle="Acesse os materiais organizados por nível"
-                icon={<Library size={28} />}
+                title={section.label}
+                subtitle={`Acesse os ${section.label.toLowerCase()} organizados por nível`}
+                icon={<ContentTypeIcon type={section.type} size={28} />}
             />
 
             <BookFilters
-                books={levelBooks}
+                books={sectionBooks}
                 value={filters}
                 onChange={setFilters}
-                fields={['level', 'curriculumComponent', 'bookType', 'contentType', 'sort']}
+                fields={['level', 'curriculumComponent', 'bookType', 'sort']}
                 resultCount={filteredBooks.length}
             />
 
@@ -49,8 +53,8 @@ export default function NiveisLibrary() {
                     <BookOpen size={64} />
                     <h3>Nenhum material encontrado</h3>
                     <p>
-                        {levelBooks.length === 0
-                            ? 'Não há materiais por nível disponíveis ainda.'
+                        {sectionBooks.length === 0
+                            ? `Não há ${section.label.toLowerCase()} por nível disponíveis ainda.`
                             : 'Nenhum material corresponde aos filtros.'}
                     </p>
                 </div>

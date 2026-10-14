@@ -1,7 +1,5 @@
-import type { Book, ContentType } from '../services/api';
-import { getContentType, hasContent } from './media';
+import type { Book } from '../services/api';
 
-export type Availability = 'available' | 'missing';
 export type BookSort = 'title' | 'recent';
 
 export interface BookFilters {
@@ -11,8 +9,6 @@ export interface BookFilters {
     seriesId?: string | 'all';
     level?: string | 'all';
     bookType?: Book['book_type'] | 'all';
-    contentType?: ContentType | 'all';
-    availability?: Availability | 'all';
     sort?: BookSort;
 }
 
@@ -22,12 +18,10 @@ export const EMPTY_FILTERS: Required<BookFilters> = {
     seriesId: 'all',
     level: 'all',
     bookType: 'all',
-    contentType: 'all',
-    availability: 'all',
     sort: 'title'
 };
 
-const SELECT_KEYS = ['curriculumComponent', 'seriesId', 'level', 'bookType', 'contentType', 'availability'] as const;
+const SELECT_KEYS = ['curriculumComponent', 'seriesId', 'level', 'bookType'] as const;
 
 /** Lowercase and without accents, so "matematica" finds "Matemática". */
 export function normalizeText(value: string | null | undefined): string {
@@ -49,8 +43,6 @@ export function matchesFilters(book: Book, filters: BookFilters): boolean {
     if (isSet(filters.seriesId) && !(book.class_groups || []).includes(filters.seriesId!)) return false;
     if (isSet(filters.level) && book.level !== filters.level) return false;
     if (isSet(filters.bookType) && book.book_type !== filters.bookType) return false;
-    if (isSet(filters.contentType) && getContentType(book) !== filters.contentType) return false;
-    if (isSet(filters.availability) && hasContent(book) !== (filters.availability === 'available')) return false;
     return true;
 }
 

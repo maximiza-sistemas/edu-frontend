@@ -62,12 +62,6 @@ describe('applyBookFilters', () => {
         expect(titles(applyBookFilters(books, { search: 'nivel 1' }))).toEqual(['Inglês Básico']);
     });
 
-    it('filters by file type, treating a missing content_type as pdf', () => {
-        const legacy = makeBook({ title: 'Antigo', content_type: undefined });
-        expect(titles(applyBookFilters([...books, legacy], { contentType: 'pdf' }))).toEqual(['Álgebra', 'Antigo', 'Inglês Básico']);
-        expect(titles(applyBookFilters(books, { contentType: 'video' }))).toEqual(['Vídeo de Ciências']);
-    });
-
     it('filters by series, level, profile and component', () => {
         expect(titles(applyBookFilters(books, { seriesId: '2º ANO' }))).toEqual(['Álgebra', 'Vídeo de Ciências']);
         expect(titles(applyBookFilters(books, { level: 'Nível 1' }))).toEqual(['Inglês Básico']);
@@ -75,13 +69,8 @@ describe('applyBookFilters', () => {
         expect(titles(applyBookFilters(books, { curriculumComponent: 'Ciências' }))).toEqual(['Vídeo de Ciências']);
     });
 
-    it('filters by whether a file is attached', () => {
-        expect(titles(applyBookFilters(books, { availability: 'missing' }))).toEqual(['Slides de História']);
-        expect(applyBookFilters(books, { availability: 'available' })).toHaveLength(3);
-    });
-
     it('combines filters', () => {
-        expect(titles(applyBookFilters(books, { seriesId: '2º ANO', contentType: 'pdf' }))).toEqual(['Álgebra']);
+        expect(titles(applyBookFilters(books, { seriesId: '2º ANO', bookType: 'student', search: 'video' }))).toEqual(['Vídeo de Ciências']);
     });
 
     it('sorts by most recent, with undated books last', () => {
@@ -119,7 +108,7 @@ describe('countActiveFilters', () => {
     it('ignores search, sort and "all"', () => {
         expect(countActiveFilters(EMPTY_FILTERS)).toBe(0);
         expect(countActiveFilters({ ...EMPTY_FILTERS, search: 'x', sort: 'recent' })).toBe(0);
-        expect(countActiveFilters({ ...EMPTY_FILTERS, contentType: 'video', seriesId: '1º ANO' })).toBe(2);
+        expect(countActiveFilters({ ...EMPTY_FILTERS, level: 'Nível 1', seriesId: '1º ANO' })).toBe(2);
     });
 });
 

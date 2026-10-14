@@ -1,13 +1,11 @@
 import { useMemo, useState } from 'react';
 import { Search, Filter, X } from 'lucide-react';
 import type { Book } from '../services/api';
-import { CONTENT_TYPES } from '../types';
-import { getContentType, hasContent } from '../utils/media';
 import { EMPTY_FILTERS, collectOptions, countActiveFilters } from '../utils/bookFilters';
 import type { BookFilters as BookFiltersType, FilterOption } from '../utils/bookFilters';
 import './BookFilters.css';
 
-export type FilterField = 'curriculumComponent' | 'seriesId' | 'level' | 'bookType' | 'contentType' | 'availability' | 'sort';
+export type FilterField = 'curriculumComponent' | 'seriesId' | 'level' | 'bookType' | 'sort';
 type SelectField = Exclude<FilterField, 'sort'>;
 
 interface FieldConfig {
@@ -19,8 +17,6 @@ interface FieldConfig {
 }
 
 const BOOK_TYPE_LABELS: Record<string, string> = { professor: 'Professor', student: 'Aluno' };
-const CONTENT_TYPE_LABELS: Record<string, string> = Object.fromEntries(CONTENT_TYPES.map(t => [t.value, t.label]));
-const AVAILABILITY_LABELS: Record<string, string> = { available: 'Com arquivo', missing: 'Sem arquivo' };
 
 const FIELD_CONFIG: Record<SelectField, FieldConfig> = {
     curriculumComponent: {
@@ -43,18 +39,6 @@ const FIELD_CONFIG: Record<SelectField, FieldConfig> = {
         allLabel: 'Todos os perfis',
         getValues: book => [book.book_type],
         labels: BOOK_TYPE_LABELS
-    },
-    contentType: {
-        label: 'Tipo de arquivo',
-        allLabel: 'Todos os tipos',
-        getValues: book => [getContentType(book)],
-        labels: CONTENT_TYPE_LABELS
-    },
-    availability: {
-        label: 'Arquivo anexado',
-        allLabel: 'Todos',
-        getValues: book => [hasContent(book) ? 'available' : 'missing'],
-        labels: AVAILABILITY_LABELS
     }
 };
 
@@ -63,7 +47,7 @@ const SORT_OPTIONS = [
     { value: 'recent', label: 'Mais recentes' }
 ] as const;
 
-export const DEFAULT_FIELDS: FilterField[] = ['curriculumComponent', 'seriesId', 'bookType', 'contentType', 'sort'];
+export const DEFAULT_FIELDS: FilterField[] = ['curriculumComponent', 'seriesId', 'bookType', 'sort'];
 
 interface BookFiltersProps {
     /** Books the options are built from; only values present in them are offered. */

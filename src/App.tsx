@@ -7,6 +7,7 @@ import MainLayout from './components/Layout/MainLayout';
 // Pages
 import Login from './pages/Login';
 import ContentViewer from './pages/ContentViewer';
+import { MATERIAL_SECTIONS, DEFAULT_SECTION } from './utils/materialSections';
 
 // Admin Pages
 import ManageBooks from './pages/Admin/ManageBooks';
@@ -42,8 +43,11 @@ function App() {
             {/* Admin Routes */}
             <Route element={<ProtectedRoute allowedRoles={['admin']} />}>
               <Route element={<MainLayout />}>
-                <Route path="/admin" element={<Navigate to="/admin/books" replace />} />
-                <Route path="/admin/books" element={<ManageBooks />} />
+                <Route path="/admin" element={<Navigate to={`/admin/books/${DEFAULT_SECTION.slug}`} replace />} />
+                <Route path="/admin/books" element={<Navigate to={`/admin/books/${DEFAULT_SECTION.slug}`} replace />} />
+                {MATERIAL_SECTIONS.map(section => (
+                  <Route key={section.slug} path={`/admin/books/${section.slug}`} element={<ManageBooks section={section} />} />
+                ))}
                 <Route path="/admin/users" element={<ManageUsers />} />
                 <Route path="/admin/curriculum" element={<ManageCurriculum />} />
                 <Route path="/admin/series" element={<ManageSeries />} />
@@ -54,8 +58,11 @@ function App() {
             {/* Professor Routes */}
             <Route element={<ProtectedRoute allowedRoles={['professor']} />}>
               <Route element={<MainLayout />}>
-                <Route path="/professor" element={<Navigate to="/professor/my-books" replace />} />
-                <Route path="/professor/my-books" element={<ProfessorMyBooks />} />
+                <Route path="/professor" element={<Navigate to={`/professor/my-books/${DEFAULT_SECTION.slug}`} replace />} />
+                <Route path="/professor/my-books" element={<Navigate to={`/professor/my-books/${DEFAULT_SECTION.slug}`} replace />} />
+                {MATERIAL_SECTIONS.map(section => (
+                  <Route key={section.slug} path={`/professor/my-books/${section.slug}`} element={<ProfessorMyBooks section={section} />} />
+                ))}
                 <Route path="/professor/students" element={<ProfessorStudents />} />
               </Route>
             </Route>
@@ -63,16 +70,22 @@ function App() {
             {/* Student Routes */}
             <Route element={<ProtectedRoute allowedRoles={['student']} />}>
               <Route element={<MainLayout />}>
-                <Route path="/student" element={<Navigate to="/student/library" replace />} />
-                <Route path="/student/library" element={<StudentLibrary />} />
+                <Route path="/student" element={<Navigate to={`/student/library/${DEFAULT_SECTION.slug}`} replace />} />
+                <Route path="/student/library" element={<Navigate to={`/student/library/${DEFAULT_SECTION.slug}`} replace />} />
+                {MATERIAL_SECTIONS.map(section => (
+                  <Route key={section.slug} path={`/student/library/${section.slug}`} element={<StudentLibrary section={section} />} />
+                ))}
               </Route>
             </Route>
 
             {/* Níveis Routes */}
             <Route element={<ProtectedRoute allowedRoles={['niveis']} />}>
               <Route element={<MainLayout />}>
-                <Route path="/niveis" element={<Navigate to="/niveis/library" replace />} />
-                <Route path="/niveis/library" element={<NiveisLibrary />} />
+                <Route path="/niveis" element={<Navigate to={`/niveis/library/${DEFAULT_SECTION.slug}`} replace />} />
+                <Route path="/niveis/library" element={<Navigate to={`/niveis/library/${DEFAULT_SECTION.slug}`} replace />} />
+                {MATERIAL_SECTIONS.map(section => (
+                  <Route key={section.slug} path={`/niveis/library/${section.slug}`} element={<NiveisLibrary section={section} />} />
+                ))}
               </Route>
             </Route>
 
