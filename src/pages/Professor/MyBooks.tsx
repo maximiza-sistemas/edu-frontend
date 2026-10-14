@@ -1,89 +1,58 @@
+import { useMemo, useState } from 'react';
 import { useBooks } from '../../contexts/BooksContext';
-import BookCard from '../../components/BookCard';
-import { BookOpen, Search } from 'lucide-react';
+import LibraryBookCard from '../../components/LibraryBookCard';
+import BookFilters from '../../components/BookFilters';
+import { BookOpen } from 'lucide-react';
 import PageBanner from '../../components/PageBanner';
-import { useState } from 'react';
-import { CURRICULUM_COMPONENTS, CLASS_GROUPS } from '../../contexts/BooksContext';
-import './MyBooks.css';
+import { applyBookFilters, EMPTY_FILTERS } from '../../utils/bookFilters';
+import type { BookFilters as BookFiltersType } from '../../utils/bookFilters';
+import '../Student/MyLibrary.css';
 
 export default function ProfessorMyBooks() {
-    const { books, isLoading, filterBooks } = useBooks();
-    const [search, setSearch] = useState('');
-    const [filterComponent, setFilterComponent] = useState<string>('all');
-    const [filterClass, setFilterClass] = useState<string>('all');
+    const { books, isLoading } = useBooks();
+    const [filters, setFilters] = useState<BookFiltersType>(EMPTY_FILTERS);
 
-    const filteredBooks = filterBooks({
-        search,
-        curriculumComponent: filterComponent as any,
-        classGroup: filterClass as any
-    }).filter(book => !book.level);
+    // Level materials belong to the "Níveis" library, not to the series one
+    const seriesBooks = useMemo(() => books.filter(book => !book.level), [books]);
+    const filteredBooks = applyBookFilters(seriesBooks, filters);
 
     return (
-        <div className="my-books animate-fadeIn">
+        <div className="my-library animate-fadeIn">
             <PageBanner
                 title="Biblioteca de Materiais"
                 subtitle="Acesse os materiais disponíveis"
                 icon={<BookOpen size={28} />}
             />
 
-            <div className="books-filters">
-                <div className="search-input">
-                    <Search size={18} />
-                    <input
-                        type="text"
-                        placeholder="Buscar materiais..."
-                        value={search}
-                        onChange={e => setSearch(e.target.value)}
-                        className="input"
-                    />
-                </div>
-                <select
-                    className="select"
-                    value={filterComponent}
-                    onChange={e => setFilterComponent(e.target.value)}
-                >
-                    <option value="all">Todas as disciplinas</option>
-                    {CURRICULUM_COMPONENTS.map(comp => (
-                        <option key={comp} value={comp}>{comp}</option>
-                    ))}
-                </select>
-                <select
-                    className="select"
-                    value={filterClass}
-                    onChange={e => setFilterClass(e.target.value)}
-                >
-                    <option value="all">Todas as turmas</option>
-                    {CLASS_GROUPS.map(group => (
-                        <option key={group} value={group}>{group}</option>
-                    ))}
-                </select>
-            </div>
+            <BookFilters
+                books={seriesBooks}
+                value={filters}
+                onChange={setFilters}
+                fields={['curriculumComponent', 'seriesId', 'bookType', 'contentType', 'sort']}
+                resultCount={filteredBooks.length}
+            />
 
-            <section className="books-section">
-                <div className="books-list">
-                    {isLoading ? (
-                        <div className="empty-state">
-                            <p>Carregando materiais...</p>
-                        </div>
-                    ) : filteredBooks.length > 0 ? (
-                        filteredBooks.map(book => (
-                            <BookCard
-                                key={book.id}
-                                book={book}
-                            />
-                        ))
-                    ) : (
-                        <div className="empty-state">
-                            <BookOpen size={48} />
-                            <p>
-                                {books.length === 0
-                                    ? 'Nenhum material disponível ainda.'
-                                    : 'Nenhum material corresponde aos filtros selecionados.'}
-                            </p>
-                        </div>
-                    )}
+            {isLoading ? (
+                <div className="empty-state">
+                    <p>Carregando materiais...</p>
                 </div>
-            </section>
+            ) : filteredBooks.length > 0 ? (
+                <div className="library-grid">
+                    {filteredBooks.map(book => (
+                        <LibraryBookCard key={book.id} book={book} showProfile />
+                    ))}
+                </div>
+            ) : (
+                <div className="empty-state">
+                    <BookOpen size={64} />
+                    <h3>Nenhum material encontrado</h3>
+                    <p>
+                        {seriesBooks.length === 0
+                            ? 'Nenhum material disponível ainda.'
+                            : 'Nenhum material corresponde aos filtros selecionados.'}
+                    </p>
+                </div>
+            )}
         </div>
     );
 }

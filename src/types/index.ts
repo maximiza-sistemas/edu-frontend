@@ -46,11 +46,4 @@ export const CLASS_GROUPS = [
 export type ClassGroup = typeof CLASS_GROUPS[number];
 
 // Filtros
-export interface BookFilters {
-    search?: string;
-    curriculumComponent?: CurriculumComponent | 'all';
-    classGroup?: ClassGroup | 'all';
-    seriesId?: string | 'all';
-    bookType?: BookType | 'all';
-    contentType?: import('../services/api').ContentType | 'all';
-}
+export type { BookFilters } from '../utils/bookFilters';

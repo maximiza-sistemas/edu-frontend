@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
-import { booksApi, Book, ContentType } from '../services/api';
-import { getContentType } from '../utils/media';
+import { booksApi, Book } from '../services/api';
+import { applyBookFilters } from '../utils/bookFilters';
+import type { BookFilters } from '../utils/bookFilters';
 import { useAuth } from './AuthContext';
 
 // Re-export types for backwards compatibility
@@ -34,14 +35,7 @@ export const CLASS_GROUPS = [
 
 export type ClassGroup = typeof CLASS_GROUPS[number];
 
-export interface BookFilters {
-    search?: string;
-    curriculumComponent?: CurriculumComponent | 'all';
-    classGroup?: ClassGroup | 'all';
-    seriesId?: string | 'all';
-    bookType?: 'student' | 'professor' | 'all';
-    contentType?: ContentType | 'all';
-}
+export type { BookFilters } from '../utils/bookFilters';
 
 interface BooksContextType {
     books: Book[];
@@ -157,47 +151,7 @@ export function BooksProvider({ children }: { children: ReactNode }) {
         return books.find(b => b.id === id);
     };
 
-    const filterBooks = (filters: BookFilters): Book[] => {
-        return books.filter(book => {
-            // Search filter
-            if (filters.search) {
-                const searchLower = filters.search.toLowerCase();
-                const matchesSearch =
-                    book.title.toLowerCase().includes(searchLower) ||
-                    book.author.toLowerCase().includes(searchLower) ||
-                    book.description.toLowerCase().includes(searchLower);
-                if (!matchesSearch) return false;
-            }
-
-            // Curriculum component filter
-            if (filters.curriculumComponent && filters.curriculumComponent !== 'all') {
-                if (book.curriculum_component !== filters.curriculumComponent) return false;
-            }
-
-            // Class group filter
-            if (filters.classGroup && filters.classGroup !== 'all') {
-                if (!book.class_groups.includes(filters.classGroup)) return false;
-            }
-
-            // Series filter - match by series name in class_groups
-            if (filters.seriesId && filters.seriesId !== 'all') {
-                // seriesId is actually the series name from the select
-                if (!book.class_groups.includes(filters.seriesId)) return false;
-            }
-
-            // Book type (profile) filter
-            if (filters.bookType && filters.bookType !== 'all') {
-                if (book.book_type !== filters.bookType) return false;
-            }
-
-            // Material format filter
-            if (filters.contentType && filters.contentType !== 'all') {
-                if (getContentType(book) !== filters.contentType) return false;
-            }
-
-            return true;
-        });
-    };
+    const filterBooks = (filters: BookFilters): Book[] => applyBookFilters(books, filters);
 
     const getBooksByComponent = (component: CurriculumComponent): Book[] => {
         return books.filter(b => b.curriculum_component === component);

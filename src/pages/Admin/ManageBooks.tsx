@@ -6,6 +6,7 @@ import type { LucideIcon } from 'lucide-react';
 import PageBanner from '../../components/PageBanner';
 import { Book, BookFilters as BookFiltersType, BookType, CONTENT_TYPES, ContentType } from '../../types';
 import BookFilters from '../../components/BookFilters';
+import { EMPTY_FILTERS } from '../../utils/bookFilters';
 import { uploadApi, curriculumApi, seriesApi, levelsApi, CurriculumComponent, Series, Level } from '../../services/api';
 import { CONTENT_LABELS, getContentType, hasContent } from '../../utils/media';
 import CoverField from '../../components/admin/CoverField';
@@ -37,10 +38,10 @@ const getErrorMessage = (err: unknown) => (err instanceof Error && err.message ?
 
 export default function ManageBooks() {
     const navigate = useNavigate();
-    const { addBook, updateBook, deleteBook, filterBooks } = useBooks();
+    const { books, addBook, updateBook, deleteBook, filterBooks } = useBooks();
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingBook, setEditingBook] = useState<Book | null>(null);
-    const [filters, setFilters] = useState<BookFiltersType>({});
+    const [filters, setFilters] = useState<BookFiltersType>(EMPTY_FILTERS);
 
     const [formData, setFormData] = useState<MaterialForm>(EMPTY_FORM);
     const media = useMaterialMedia(formData, setFormData);
@@ -179,7 +180,13 @@ export default function ManageBooks() {
                 }
             />
 
-            <BookFilters onFilterChange={setFilters} />
+            <BookFilters
+                books={books}
+                value={filters}
+                onChange={setFilters}
+                fields={['curriculumComponent', 'seriesId', 'level', 'bookType', 'contentType', 'availability', 'sort']}
+                resultCount={filteredBooks.length}
+            />
 
             <div className="books-grid">
                 {filteredBooks.map(book => {
@@ -239,6 +246,7 @@ export default function ManageBooks() {
                                         {book.book_type === 'professor' ? 'Professor' : 'Aluno'}
                                     </span>
                                     <span className="badge badge-component">{book.curriculum_component}</span>
+                                    {book.level && <span className="badge badge-component">{book.level}</span>}
                                 </div>
 
                                 <div>
