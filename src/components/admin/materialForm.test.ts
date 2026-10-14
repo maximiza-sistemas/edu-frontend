@@ -106,6 +106,19 @@ describe('getSubmitError', () => {
         expect(getSubmitError(form({}), { ...NO_PENDING, cover: someFile })).toMatch(/a capa selecionada/);
     });
 
+    it('requires the file or link of every format', () => {
+        expect(getSubmitError(form({ contentType: 'pdf', pdfUrl: '' }), NO_PENDING)).toMatch(/PDF/);
+        expect(getSubmitError(form({ contentType: 'video', videoSourceMode: 'upload', mediaUrl: '' }), NO_PENDING)).toMatch(/arquivo de vídeo/);
+        expect(getSubmitError(form({ contentType: 'video', videoSourceMode: 'link', mediaUrl: '  ' }), NO_PENDING)).toMatch(/link do vídeo/);
+        expect(getSubmitError(form({ contentType: 'pptx', mediaUrl: '' }), NO_PENDING)).toMatch(/apresentação/);
+    });
+
+    it('accepts a material with its attachment', () => {
+        expect(getSubmitError(form({ contentType: 'pdf', pdfUrl: '/uploads/pdfs/a.pdf' }), NO_PENDING)).toBeNull();
+        expect(getSubmitError(form({ contentType: 'video', videoSourceMode: 'upload', mediaUrl: '/uploads/videos/a.mp4' }), NO_PENDING)).toBeNull();
+        expect(getSubmitError(form({ contentType: 'pptx', mediaUrl: '/uploads/presentations/a.pptx' }), NO_PENDING)).toBeNull();
+    });
+
     it('validates the video link in link mode', () => {
         const linkForm = form({ contentType: 'video', videoSourceMode: 'link' });
         expect(getSubmitError({ ...linkForm, mediaUrl: 'https://example.com' }, NO_PENDING)).toMatch(/YouTube ou Vimeo/);

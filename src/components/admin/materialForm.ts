@@ -80,6 +80,14 @@ const DISCARDED_SELECTION_WARNINGS: Record<ContentType, string> = {
     pptx: 'A apresentação selecionada será descartada.'
 };
 
+// Every material must have its file or link; the backend rejects it otherwise
+const MISSING_ATTACHMENT_MESSAGES: Record<ContentType, string> = {
+    pdf: 'Anexe o arquivo PDF do livro antes de salvar.',
+    video: 'Anexe o arquivo de vídeo antes de salvar.',
+    pptx: 'Anexe o arquivo da apresentação antes de salvar.'
+};
+const MISSING_VIDEO_LINK_MESSAGE = 'Informe o link do vídeo (YouTube ou Vimeo) antes de salvar.';
+
 const PENDING_FILE_NAMES: Record<ContentType, string> = {
     pdf: 'o PDF selecionado',
     video: 'o vídeo selecionado',
@@ -197,7 +205,15 @@ export function getSubmitError(form: MaterialForm, pending: PendingFiles): strin
     const unsentFile = getUnsentFileName(form, pending);
     if (unsentFile) return `Clique em "Enviar" para anexar ${unsentFile} antes de salvar, ou cancele a seleção.`;
 
-    return isVideoLinkMode(form) ? validateVideoLink(form.mediaUrl) : null;
+    if (isVideoLinkMode(form)) {
+        const linkError = validateVideoLink(form.mediaUrl);
+        if (linkError) return linkError;
+    }
+
+    if (!getAttachedUrl(form)) {
+        return isVideoLinkMode(form) ? MISSING_VIDEO_LINK_MESSAGE : MISSING_ATTACHMENT_MESSAGES[form.contentType];
+    }
+    return null;
 }
 
 /** pdf_url is only cleared when the admin removed the PDF or the material is no longer a PDF. */
